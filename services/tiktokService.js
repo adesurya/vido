@@ -4,15 +4,13 @@ const Video = require('../models/Video');
 class TikTokService {
     constructor() {
         this.apiKey = process.env.RAPIDAPI_KEY;
-        this.apiHost = process.env.RAPIDAPI_HOST;
-        this.baseUrl = process.env.TIKTOK_API_BASE_URL;
+        this.apiHost = process.env.RAPIDAPI_HOST || 'tiktok-download-without-watermark.p.rapidapi.com';
+        this.baseUrl = process.env.TIKTOK_API_BASE_URL || 'https://tiktok-download-without-watermark.p.rapidapi.com';
         this.timeout = parseInt(process.env.DOWNLOAD_TIMEOUT) || 30000;
         
         // Check if API is configured - all three are required
         this.isConfigured = !!(this.apiKey && this.apiHost && this.baseUrl && 
-                             this.apiKey.length > 10 && 
-                             this.apiHost.includes('tiktok') && 
-                             this.baseUrl.includes('https'));
+                             this.apiKey.length > 10);
         
         console.log('🔧 TikTok Service Configuration:', {
             hasApiKey: !!this.apiKey,
@@ -26,14 +24,11 @@ class TikTokService {
         
         if (!this.isConfigured) {
             console.warn('⚠️  TikTok API not properly configured - running in demo mode');
-            console.warn('💡 To enable real downloads:');
-            console.warn('   1. Set RAPIDAPI_KEY in .env file');
-            console.warn('   2. Set RAPIDAPI_HOST=tiktok-download-without-watermark.p.rapidapi.com');
-            console.warn('   3. Set TIKTOK_API_BASE_URL=https://tiktok-download-without-watermark.p.rapidapi.com');
         } else {
             console.log('✅ TikTok API configured - real downloads enabled');
             
             this.axiosInstance = axios.create({
+                baseURL: this.baseUrl,
                 timeout: this.timeout,
                 headers: {
                     'x-rapidapi-host': this.apiHost,
@@ -51,23 +46,29 @@ class TikTokService {
 
     // Extract TikTok URL from various formats
     extractTikTokUrl(input) {
+        const cleanInput = input.trim();
+        
+        // Remove any tracking parameters and clean the URL
         const patterns = [
             /https?:\/\/(?:www\.)?tiktok\.com\/@[\w.-]+\/video\/(\d+)/,
             /https?:\/\/(?:www\.)?tiktok\.com\/t\/(\w+)/,
-            /https?:\/\/vm\.tiktok\.com\/(\w+)/,
-            /https?:\/\/(?:www\.)?tiktok\.com\/\S+/
+            /https?:\/\/vm\.tiktok\.com\/(\w+)/
         ];
 
         for (const pattern of patterns) {
-            const match = input.match(pattern);
+            const match = cleanInput.match(pattern);
             if (match) {
-                return input.trim();
+                // Return the original URL for standard tiktok.com URLs
+                if (pattern.test(cleanInput) && cleanInput.includes('tiktok.com/@')) {
+                    return cleanInput.split('?')[0]; // Remove query parameters
+                }
+                return cleanInput;
             }
         }
 
         // If it's just a video ID, construct the URL
-        if (/^\d{19}$/.test(input.trim())) {
-            return `https://www.tiktok.com/@unknown/video/${input.trim()}`;
+        if (/^\d{19}$/.test(cleanInput)) {
+            return `https://www.tiktok.com/@unknown/video/${cleanInput}`;
         }
 
         throw new Error('Invalid TikTok URL format');
@@ -79,12 +80,11 @@ class TikTokService {
         return match ? match[1] : null;
     }
 
-    // Generate demo video data for testing - Match real API structure
+    // Generate demo video data for testing
     getDemoVideoData(url) {
         const videoId = this.extractVideoIdFromUrl(url) || Date.now().toString();
         const timestamp = Math.floor(Date.now() / 1000);
         
-        // Extract username from URL if possible
         const usernameMatch = url.match(/@([\w.-]+)\//);
         const username = usernameMatch ? usernameMatch[1] : 'demo_user';
         
@@ -92,7 +92,7 @@ class TikTokService {
             aweme_id: `demo_v14044g50000cvl3b5vog65qhtpvjft0_${videoId}`,
             id: videoId,
             region: "US",
-            title: `Demo Video from ${url} - Configure API Key for Real Downloads 🎬`,
+            title: `Demo Video from @${username} - Configure API Key for Real Downloads 🎬`,
             cover: "https://via.placeholder.com/300x400/6366f1/ffffff?text=Demo+Video",
             ai_dynamic_cover: "https://via.placeholder.com/300x400/6366f1/ffffff?text=Demo+AI+Cover",
             origin_cover: "https://via.placeholder.com/300x360/6366f1/ffffff?text=Demo+Origin",
@@ -152,25 +152,45 @@ class TikTokService {
                 return this.getDemoVideoData(cleanUrl);
             }
             
-            console.log('🔗 Making API request to:', this.baseUrl + '/analysis');
-            console.log('📋 Request params:', { url: cleanUrl, hd: hdQuality ? '1080' : '720' });
+            // Properly encode the URL for the API request
+            const encodedUrl = encodeURIComponent(cleanUrl);
+            const hdParam = hdQuality ? '1080' : '720';
+            
+            console.log('🔗 Making API request to:', `${this.baseUrl}/analysis`);
+            console.log('📋 Request params:', { 
+                url: cleanUrl, 
+                encodedUrl: encodedUrl,
+                hd: hdParam 
+            });
             
             const response = await this.axiosInstance.get('/analysis', {
                 params: {
                     url: cleanUrl,
-                    hd: hdQuality ? '1080' : '720'
+                    hd: hdParam
                 }
             });
 
-            console.log('📥 API Response received:', response.data?.code, response.data?.msg);
+            console.log('📥 API Response received:', {
+                status: response.status,
+                code: response.data?.code,
+                msg: response.data?.msg,
+                hasData: !!response.data?.data
+            });
 
             if (response.data.code !== 0) {
+                console.error('❌ API Error Response:', response.data);
                 throw new Error(response.data.msg || 'Failed to fetch video info');
             }
 
             return response.data.data;
         } catch (error) {
-            console.error('TikTok API Error:', error.message);
+            console.error('TikTok API Error Details:', {
+                message: error.message,
+                code: error.code,
+                response: error.response?.data,
+                status: error.response?.status,
+                url: url
+            });
             
             // If API fails, return demo data as fallback
             if (!this.isConfigured || error.code === 'ECONNABORTED' || error.response?.status >= 500) {
@@ -180,11 +200,13 @@ class TikTokService {
             
             if (error.response) {
                 const status = error.response.status;
-                const message = error.response.data?.message || error.message;
+                const message = error.response.data?.message || error.response.data?.msg || error.message;
                 
-                console.log('🚨 API Error Response:', status, message);
+                console.log('🚨 API Error Response:', { status, message, data: error.response.data });
                 
                 switch (status) {
+                    case 400:
+                        throw new Error('Invalid URL format or parameters');
                     case 404:
                         throw new Error('Video not found or has been deleted');
                     case 403:
@@ -195,7 +217,7 @@ class TikTokService {
                         console.log('🔄 API server error, falling back to demo mode');
                         return this.getDemoVideoData(url);
                     default:
-                        throw new Error(`API Error: ${message}`);
+                        throw new Error(`API Error (${status}): ${message}`);
                 }
             }
 
@@ -203,8 +225,12 @@ class TikTokService {
                 throw new Error('Request timeout. Please try again');
             }
 
-            console.log('🔄 Connection error, falling back to demo mode');
-            return this.getDemoVideoData(url);
+            if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+                console.log('🔄 Connection error, falling back to demo mode');
+                return this.getDemoVideoData(url);
+            }
+
+            throw new Error(`Network error: ${error.message}`);
         }
     }
 
@@ -216,17 +242,6 @@ class TikTokService {
             // Get video info using the provided URL
             const videoInfo = await this.getVideoInfo(url);
             console.log('📊 Video info retrieved:', videoInfo.title);
-            
-            // If in demo mode, use the original URL for video ID extraction
-            if (!this.isConfigured) {
-                // Update video info to reflect the original URL
-                const originalVideoId = this.extractVideoIdFromUrl(url);
-                if (originalVideoId) {
-                    videoInfo.id = originalVideoId;
-                    videoInfo.aweme_id = `demo_${originalVideoId}`;
-                }
-                videoInfo.title = `${videoInfo.title} [Original URL: ${url}]`;
-            }
             
             // Save/update video in database
             const video = await Video.createFromApiResponse(videoInfo);

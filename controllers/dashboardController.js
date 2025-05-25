@@ -2,6 +2,14 @@ const User = require('../models/User');
 const Video = require('../models/Video');
 const tiktokService = require('../services/tiktokService');
 
+// Helper function to format duration
+function formatDuration(seconds) {
+    if (!seconds || seconds === 0) return '00:00';
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
 class DashboardController {
     // Show main dashboard
     async showDashboard(req, res) {
@@ -25,35 +33,53 @@ class DashboardController {
                 };
             }
             
-            // Get recent downloads (with error handling) - Only if videos exist
+            // Get recent downloads with proper JOIN and error handling
             let recentDownloads = [];
             try {
                 const { executeQuery } = require('../config/database');
-                // First check if we have any download history
-                const historyCount = await executeQuery('SELECT COUNT(*) as count FROM download_history WHERE user_id = ?', [userId]);
                 
-                if (historyCount[0]?.count > 0) {
-                    recentDownloads = await executeQuery(`
-                        SELECT 
-                            dh.download_type, dh.downloaded_at, dh.status,
-                            COALESCE(v.title, 'Unknown Video') as title,
-                            COALESCE(v.cover_url, 'https://via.placeholder.com/60x60/6366f1/ffffff?text=Video') as cover_url,
-                            COALESCE(v.author_name, 'Unknown Author') as author_name,
-                            COALESCE(v.duration, 0) as duration
-                        FROM download_history dh
-                        LEFT JOIN videos v ON dh.video_id = v.id
-                        WHERE dh.user_id = ? AND dh.status = 'completed'
-                        ORDER BY dh.downloaded_at DESC
-                        LIMIT 5
-                    `, [userId]);
-                }
+                recentDownloads = await executeQuery(`
+                    SELECT 
+                        dh.id as download_id,
+                        dh.download_type, 
+                        dh.downloaded_at, 
+                        dh.status,
+                        dh.batch_id,
+                        v.id as video_id,
+                        v.title,
+                        v.cover_url,
+                        v.author_name,
+                        v.duration,
+                        v.play_count,
+                        v.digg_count,
+                        v.comment_count,
+                        v.share_count,
+                        v.download_count,
+                        v.video_url,
+                        v.watermark_video_url
+                    FROM download_history dh
+                    INNER JOIN videos v ON dh.video_id = v.id
+                    WHERE dh.user_id = ? AND dh.status = 'completed'
+                    ORDER BY dh.downloaded_at DESC
+                    LIMIT 6
+                `, [userId]);
+                
+                console.log(`Found ${recentDownloads.length} recent downloads for user ${userId}`);
+                
             } catch (error) {
                 console.error('Error getting recent downloads:', error);
                 recentDownloads = [];
             }
 
-            // Skip popular videos for now to avoid the MySQL error
-            const popularVideos = [];
+            // Get popular videos from database
+            let popularVideos = [];
+            try {
+                popularVideos = await Video.getPopular(5);
+                console.log(`Found ${popularVideos.length} popular videos`);
+            } catch (error) {
+                console.error('Error getting popular videos:', error);
+                popularVideos = [];
+            }
 
             res.render('dashboard/index', {
                 title: 'Dashboard - TikTok Downloader Pro',
@@ -61,9 +87,30 @@ class DashboardController {
                 stats: userStats,
                 recentDownloads: recentDownloads.map(download => ({
                     ...download,
-                    formattedDuration: this.formatDuration(download.duration || 0)
+                    formattedDuration: formatDuration(download.duration || 0),
+                    formattedCounts: {
+                        play_count: Video.formatCount(download.play_count || 0),
+                        digg_count: Video.formatCount(download.digg_count || 0),
+                        comment_count: Video.formatCount(download.comment_count || 0),
+                        share_count: Video.formatCount(download.share_count || 0),
+                        download_count: Video.formatCount(download.download_count || 0)
+                    }
                 })),
-                popularVideos: popularVideos,
+                popularVideos: popularVideos.map(video => ({
+                    id: video.id,
+                    title: video.title,
+                    cover_url: video.cover_url,
+                    author_name: video.author_name,
+                    duration: video.duration,
+                    play_count: video.play_count,
+                    digg_count: video.digg_count,
+                    comment_count: video.comment_count,
+                    share_count: video.share_count,
+                    download_count: video.download_count,
+                    created_at: video.created_at,
+                    formattedCounts: video.getFormattedCounts(),
+                    formattedDuration: video.getFormattedDuration()
+                })),
                 messages: req.flash()
             });
 
@@ -89,14 +136,6 @@ class DashboardController {
         }
     }
 
-    // Helper method to format duration
-    formatDuration(seconds) {
-        if (!seconds || seconds === 0) return '00:00';
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-    }
-
     // Show download page
     async showDownload(req, res) {
         try {
@@ -114,10 +153,86 @@ class DashboardController {
         }
     }
 
+    // Get video details for modal
+    async getVideoDetails(req, res) {
+        try {
+            const { id } = req.params;
+            const userId = req.session.userId;
+            
+            // Get video with download history
+            const { executeQuery, getOne } = require('../config/database');
+            
+            const video = await getOne(`
+                SELECT 
+                    v.*,
+                    dh.download_type,
+                    dh.downloaded_at,
+                    dh.batch_id
+                FROM videos v
+                INNER JOIN download_history dh ON v.id = dh.video_id
+                WHERE v.id = ? AND dh.user_id = ?
+                ORDER BY dh.downloaded_at DESC
+                LIMIT 1
+            `, [id, userId]);
+            
+            if (!video) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Video not found or not accessible'
+                });
+            }
+
+            res.json({
+                success: true,
+                data: {
+                    id: video.id,
+                    title: video.title,
+                    thumbnail: video.cover_url,
+                    duration: formatDuration(video.duration),
+                    author: {
+                        id: video.author_id,
+                        name: video.author_name,
+                        avatar: video.author_avatar
+                    },
+                    music: {
+                        id: video.music_id,
+                        title: video.music_title,
+                        author: video.music_author
+                    },
+                    stats: {
+                        play_count: Video.formatCount(video.play_count),
+                        digg_count: Video.formatCount(video.digg_count),
+                        comment_count: Video.formatCount(video.comment_count),
+                        share_count: Video.formatCount(video.share_count),
+                        download_count: Video.formatCount(video.download_count)
+                    },
+                    downloadUrls: {
+                        hd: video.video_url,
+                        watermark: video.watermark_video_url
+                    },
+                    downloadInfo: {
+                        type: video.download_type,
+                        downloadedAt: video.downloaded_at,
+                        batchId: video.batch_id
+                    },
+                    createdAt: video.created_at
+                }
+            });
+
+        } catch (error) {
+            console.error('Get video details error:', error.message);
+            
+            res.status(500).json({
+                success: false,
+                message: 'Failed to get video details'
+            });
+        }
+    }
+
     // Show admin panel
     async showAdmin(req, res) {
         try {
-            if (!req.user.isAdmin()) {
+            if (!req.user || !req.user.isAdmin()) {
                 req.flash('error', 'Access denied');
                 return res.redirect('/dashboard');
             }
@@ -137,7 +252,17 @@ class DashboardController {
                 systemStats,
                 recentUsers,
                 recentVideos: recentVideos.map(video => ({
-                    ...video,
+                    id: video.id,
+                    title: video.title,
+                    cover_url: video.cover_url,
+                    author_name: video.author_name,
+                    duration: video.duration,
+                    play_count: video.play_count,
+                    digg_count: video.digg_count,
+                    comment_count: video.comment_count,
+                    share_count: video.share_count,
+                    download_count: video.download_count,
+                    created_at: video.created_at,
                     formattedCounts: video.getFormattedCounts(),
                     formattedDuration: video.getFormattedDuration()
                 })),
@@ -239,9 +364,13 @@ class DashboardController {
             const activities = await executeQuery(`
                 SELECT 
                     'download' as type,
+                    v.id as video_id,
                     v.title,
                     v.cover_url,
                     v.author_name,
+                    v.duration,
+                    v.video_url,
+                    v.watermark_video_url,
                     dh.download_type,
                     dh.status,
                     dh.downloaded_at as created_at
@@ -254,7 +383,10 @@ class DashboardController {
 
             res.json({
                 success: true,
-                data: activities
+                data: activities.map(activity => ({
+                    ...activity,
+                    formattedDuration: formatDuration(activity.duration)
+                }))
             });
 
         } catch (error) {
@@ -320,7 +452,7 @@ class DashboardController {
     // Get admin system info
     async getSystemInfo(req, res) {
         try {
-            if (!req.user.isAdmin()) {
+            if (!req.user || !req.user.isAdmin()) {
                 return res.status(403).json({
                     success: false,
                     message: 'Admin access required'

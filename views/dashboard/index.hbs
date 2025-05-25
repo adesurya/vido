@@ -102,28 +102,80 @@
                             <i class="fas fa-history me-2"></i>
                             Recent Downloads
                         </h5>
-                        <a href="/dashboard/download" class="btn btn-sm btn-outline-primary">
-                            View All
-                        </a>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary me-2" onclick="refreshRecentDownloads()" title="Refresh">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                            <a href="/dashboard/download" class="btn btn-sm btn-outline-primary">
+                                View All
+                            </a>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">
                     {{#if recentDownloads}}
-                    <div class="row">
+                    <div class="row" id="recentDownloadsContainer">
                         {{#each recentDownloads}}
                         <div class="col-md-6 mb-3">
-                            <div class="d-flex align-items-center">
-                                <img src="{{cover_url}}" class="rounded me-3" width="60" height="60" alt="Thumbnail">
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-1 text-truncate" title="{{title}}">{{truncate title 40}}</h6>
-                                    <p class="mb-1 small text-muted">
-                                        by {{author_name}} • {{formattedDuration}}
-                                    </p>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="badge bg-{{#if (eq download_type 'bulk')}}info{{else}}primary{{/if}}">
-                                            {{download_type}}
-                                        </span>
-                                        <small class="text-muted">{{formatDate downloaded_at}}</small>
+                            <div class="card recent-download-card shadow-hover" 
+                                 style="cursor: pointer;" 
+                                 onclick="showVideoDetails({{video_id}}, '{{title}}')">
+                                <div class="card-body p-3">
+                                    <div class="d-flex align-items-start">
+                                        <div class="position-relative me-3">
+                                            <img src="{{cover_url}}" 
+                                                 class="rounded" 
+                                                 width="80" 
+                                                 height="80" 
+                                                 alt="Thumbnail"
+                                                 style="object-fit: cover">
+                                            <div class="video-duration-badge">{{formattedDuration}}</div>
+                                            <div class="video-play-overlay">
+                                                <i class="fas fa-play"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="card-title mb-1 text-truncate" title="{{title}}">
+                                                {{truncate title 45}}
+                                            </h6>
+                                            <p class="card-text small text-muted mb-2">
+                                                <i class="fas fa-user me-1"></i>{{author_name}}
+                                            </p>
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <div class="video-stats">
+                                                    <span class="badge bg-light text-dark me-1" title="Views">
+                                                        <i class="fas fa-play"></i> {{formattedCounts.play_count}}
+                                                    </span>
+                                                    <span class="badge bg-light text-dark" title="Likes">
+                                                        <i class="fas fa-heart"></i> {{formattedCounts.digg_count}}
+                                                    </span>
+                                                </div>
+                                                <span class="badge bg-{{#if (eq download_type 'bulk')}}info{{else}}primary{{/if}}">
+                                                    {{download_type}}
+                                                </span>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-clock me-1"></i>{{formatDate downloaded_at}}
+                                                </small>
+                                                <div class="btn-group btn-group-sm">
+                                                    {{#if video_url}}
+                                                    <a href="{{video_url}}" 
+                                                       class="btn btn-outline-primary btn-sm" 
+                                                       download 
+                                                       onclick="event.stopPropagation()" 
+                                                       title="Download HD">
+                                                        <i class="fas fa-download"></i>
+                                                    </a>
+                                                    {{/if}}
+                                                    <button class="btn btn-outline-secondary btn-sm" 
+                                                            onclick="event.stopPropagation(); showVideoDetails({{video_id}}, '{{title}}')" 
+                                                            title="View Details">
+                                                        <i class="fas fa-info-circle"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -131,7 +183,7 @@
                         {{/each}}
                     </div>
                     {{else}}
-                    <div class="text-center py-4">
+                    <div class="text-center py-4" id="emptyRecentDownloads">
                         <i class="fas fa-download fa-3x text-muted mb-3"></i>
                         <h6 class="text-muted">No downloads yet</h6>
                         <p class="text-muted mb-3">Start by downloading your first TikTok video!</p>
@@ -149,33 +201,57 @@
         <div class="col-lg-4 mb-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-fire me-2"></i>
-                        Popular Videos
-                    </h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-fire me-2"></i>
+                            Popular Videos
+                        </h5>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="refreshPopularVideos()" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     {{#if popularVideos}}
-                    {{#each popularVideos}}
-                    <div class="d-flex align-items-center mb-3">
-                        <img src="{{cover_url}}" class="rounded me-3" width="50" height="50" alt="Thumbnail">
-                        <div class="flex-grow-1">
-                            <h6 class="mb-1 text-truncate" title="{{title}}">{{truncate title 30}}</h6>
-                            <div class="small text-muted">
-                                <span class="me-2">
-                                    <i class="fas fa-play"></i> {{formattedCounts.play_count}}
-                                </span>
-                                <span>
-                                    <i class="fas fa-heart"></i> {{formattedCounts.digg_count}}
-                                </span>
+                    <div id="popularVideosContainer">
+                        {{#each popularVideos}}
+                        <div class="d-flex align-items-center mb-3 popular-video-item" 
+                             style="cursor: pointer;" 
+                             onclick="showPopularVideoInfo({{id}}, '{{title}}')">
+                            <div class="position-relative me-3">
+                                <img src="{{cover_url}}" 
+                                     class="rounded" 
+                                     width="60" 
+                                     height="60" 
+                                     alt="Thumbnail"
+                                     style="object-fit: cover">
+                                <div class="video-duration-small">{{formattedDuration}}</div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1 text-truncate" title="{{title}}">{{truncate title 35}}</h6>
+                                <p class="small text-muted mb-1">
+                                    <i class="fas fa-user me-1"></i>{{author_name}}
+                                </p>
+                                <div class="small text-muted">
+                                    <span class="me-2" title="Views">
+                                        <i class="fas fa-play"></i> {{formattedCounts.play_count}}
+                                    </span>
+                                    <span title="Likes">
+                                        <i class="fas fa-heart"></i> {{formattedCounts.digg_count}}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <i class="fas fa-chevron-right text-muted"></i>
                             </div>
                         </div>
+                        {{/each}}
                     </div>
-                    {{/each}}
                     {{else}}
-                    <div class="text-center py-3">
+                    <div class="text-center py-3" id="emptyPopularVideos">
                         <i class="fas fa-video fa-2x text-muted mb-2"></i>
                         <p class="text-muted mb-0">No popular videos yet</p>
+                        <small class="text-muted">Download some videos to see popular content</small>
                     </div>
                     {{/if}}
                 </div>
@@ -238,6 +314,230 @@
     </div>
 </div>
 
+<!-- Video Details Modal -->
+<div class="modal fade" id="videoDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-video me-2"></i>
+                    Video Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="videoDetailsContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading video details...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Popular Video Info Modal -->
+<div class="modal fade" id="popularVideoModal" tabindex="-1">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-fire me-2"></i>
+                    Popular Video
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <i class="fas fa-info-circle fa-3x text-info mb-3"></i>
+                <h6>Video Information</h6>
+                <p class="text-muted mb-3">This video is popular based on view count and engagement.</p>
+                <p class="small text-muted">
+                    To download this video, use the single download feature with the TikTok URL.
+                </p>
+                <a href="/dashboard/download" class="btn btn-primary">
+                    <i class="fas fa-download me-2"></i>
+                    Go to Download Page
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.recent-download-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.recent-download-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-color: var(--bs-primary);
+}
+
+.video-duration-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.video-duration-small {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 0.6rem;
+    font-weight: 600;
+}
+
+.video-play-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 24px;
+    background: rgba(99, 102, 241, 0.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.7rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.recent-download-card:hover .video-play-overlay {
+    opacity: 1;
+}
+
+.popular-video-item {
+    transition: background-color 0.2s ease;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+}
+
+.popular-video-item:hover {
+    background-color: rgba(0,0,0,0.05);
+}
+
+.video-stats .badge {
+    font-size: 0.7rem;
+}
+
+.shadow-hover {
+    transition: box-shadow 0.2s ease;
+}
+
+.shadow-hover:hover {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Download page specific styles */
+#recentDownloads .recent-download-card {
+    cursor: pointer;
+}
+
+#recentDownloads .video-stats .badge {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+}
+
+#recentDownloads .btn-group .btn-sm {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+/* Modal enhancements */
+.modal-lg {
+    max-width: 900px;
+}
+
+.modal-content {
+    border-radius: 0.75rem;
+}
+
+.modal-header {
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+/* Video preview modal */
+#downloadVideoPreviewModal .modal-body {
+    padding: 0;
+}
+
+#downloadVideoPreviewModal video {
+    border-radius: 0 0 0.75rem 0.75rem;
+}
+
+/* Loading states */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: inherit;
+    z-index: 10;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #recentDownloads .col-md-6 {
+        margin-bottom: 1rem;
+    }
+    
+    .recent-download-card .card-body {
+        padding: 1rem;
+    }
+    
+    .video-stats .badge {
+        font-size: 0.6rem;
+        padding: 0.1rem 0.3rem;
+    }
+    
+    .modal-lg {
+        max-width: 95%;
+        margin: 1rem auto;
+    }
+}
+
+@media (max-width: 576px) {
+    .recent-download-card .d-flex {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .recent-download-card .position-relative {
+        margin-bottom: 0.5rem;
+        align-self: center;
+    }
+    
+    .recent-download-card .flex-grow-1 {
+        flex-grow: 0;
+    }
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize dashboard
@@ -274,5 +574,286 @@ function updateStatsDisplay(stats) {
             statsElements[index].textContent = Utils.formatNumber(stats[element.key] || 0);
         }
     });
+}
+
+// Show video details modal
+async function showVideoDetails(videoId, title) {
+    const modal = new bootstrap.Modal(document.getElementById('videoDetailsModal'));
+    const modalContent = document.getElementById('videoDetailsContent');
+    
+    // Show loading state
+    modalContent.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Loading video details...</p>
+        </div>
+    `;
+    
+    modal.show();
+    
+    try {
+        const response = await HttpClient.get(`/dashboard/api/video/${videoId}`);
+        
+        if (response.success) {
+            const video = response.data;
+            modalContent.innerHTML = createVideoDetailsHTML(video);
+        } else {
+            throw new Error(response.message);
+        }
+    } catch (error) {
+        console.error('Failed to load video details:', error);
+        modalContent.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                <h6>Failed to Load Details</h6>
+                <p class="text-muted">${error.message || 'Unable to load video details'}</p>
+                <button class="btn btn-outline-secondary" onclick="showVideoDetails(${videoId}, '${title}')">
+                    <i class="fas fa-retry me-1"></i>Try Again
+                </button>
+            </div>
+        `;
+    }
+}
+
+function createVideoDetailsHTML(video) {
+    return `
+        <div class="row">
+            <div class="col-md-4">
+                <div class="position-relative">
+                    <img src="${video.thumbnail}" class="img-fluid rounded" alt="Video thumbnail">
+                    <div class="video-duration-badge">${video.duration}</div>
+                    <button class="btn btn-primary btn-sm position-absolute top-50 start-50 translate-middle" 
+                            onclick="playVideoPreview('${video.downloadUrls.hd}')">
+                        <i class="fas fa-play"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <h6 class="fw-bold mb-3">${video.title}</h6>
+                
+                <div class="mb-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <img src="${video.author.avatar}" class="rounded-circle me-2" width="32" height="32" alt="Author">
+                        <div>
+                            <div class="fw-bold">${video.author.name}</div>
+                            <small class="text-muted">Author</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="text-center p-2 bg-light rounded">
+                            <div class="fw-bold">${video.stats.play_count}</div>
+                            <small class="text-muted">Views</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center p-2 bg-light rounded">
+                            <div class="fw-bold">${video.stats.digg_count}</div>
+                            <small class="text-muted">Likes</small>
+                        </div>
+                    </div>
+                </div>
+                
+                ${video.music && video.music.title ? `
+                <div class="mb-3">
+                    <h6 class="fw-bold mb-2">
+                        <i class="fas fa-music me-1"></i>Background Music
+                    </h6>
+                    <div class="bg-light p-2 rounded">
+                        <div class="fw-bold">${video.music.title}</div>
+                        <small class="text-muted">by ${video.music.author}</small>
+                    </div>
+                </div>
+                ` : ''}
+                
+                <div class="mb-3">
+                    <h6 class="fw-bold mb-2">
+                        <i class="fas fa-info-circle me-1"></i>Download Info
+                    </h6>
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">Type</small>
+                            <div class="fw-bold">
+                                <span class="badge bg-${video.downloadInfo.type === 'bulk' ? 'info' : 'primary'}">
+                                    ${video.downloadInfo.type}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Downloaded</small>
+                            <div class="fw-bold small">${new Date(video.downloadInfo.downloadedAt).toLocaleString()}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="${video.downloadUrls.hd}" class="btn btn-primary" download>
+                        <i class="fas fa-download me-2"></i>Download HD Quality
+                    </a>
+                    <a href="${video.downloadUrls.watermark}" class="btn btn-outline-primary" download>
+                        <i class="fas fa-download me-2"></i>Download with Watermark
+                    </a>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Play video preview
+function playVideoPreview(videoUrl) {
+    const videoModal = `
+        <div class="modal fade" id="videoPreviewModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Video Preview</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-0">
+                        <video controls class="w-100" autoplay>
+                            <source src="${videoUrl}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal
+    const existingModal = document.getElementById('videoPreviewModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add new modal
+    document.body.insertAdjacentHTML('beforeend', videoModal);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('videoPreviewModal'));
+    modal.show();
+    
+    // Clean up when modal is hidden
+    document.getElementById('videoPreviewModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+// Show popular video info
+function showPopularVideoInfo(videoId, title) {
+    const modal = new bootstrap.Modal(document.getElementById('popularVideoModal'));
+    modal.show();
+}
+
+// Refresh recent downloads
+async function refreshRecentDownloads() {
+    const container = document.getElementById('recentDownloadsContainer');
+    const emptyState = document.getElementById('emptyRecentDownloads');
+    
+    try {
+        // Show loading state
+        if (container) {
+            container.innerHTML = `
+                <div class="col-12 text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Refreshing...</p>
+                </div>
+            `;
+        }
+        
+        const response = await HttpClient.get('/dashboard/api/activity?limit=6');
+        
+        if (response.success && response.data.length > 0) {
+            // Update container with new data
+            const downloadsHTML = response.data.map(activity => `
+                <div class="col-md-6 mb-3">
+                    <div class="card recent-download-card shadow-hover" 
+                         style="cursor: pointer;" 
+                         onclick="showVideoDetails(${activity.video_id}, '${activity.title}')">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-start">
+                                <div class="position-relative me-3">
+                                    <img src="${activity.cover_url}" 
+                                         class="rounded" 
+                                         width="80" 
+                                         height="80" 
+                                         alt="Thumbnail"
+                                         style="object-fit: cover">
+                                    <div class="video-duration-badge">${activity.formattedDuration}</div>
+                                    <div class="video-play-overlay">
+                                        <i class="fas fa-play"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="card-title mb-1 text-truncate" title="${activity.title}">
+                                        ${activity.title.length > 45 ? activity.title.substring(0, 45) + '...' : activity.title}
+                                    </h6>
+                                    <p class="card-text small text-muted mb-2">
+                                        <i class="fas fa-user me-1"></i>${activity.author_name}
+                                    </p>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="badge bg-${activity.download_type === 'bulk' ? 'info' : 'primary'}">
+                                            ${activity.download_type}
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>${new Date(activity.created_at).toLocaleDateString()}
+                                        </small>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="${activity.video_url}" 
+                                               class="btn btn-outline-primary btn-sm" 
+                                               download 
+                                               onclick="event.stopPropagation()" 
+                                               title="Download HD">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                            <button class="btn btn-outline-secondary btn-sm" 
+                                                    onclick="event.stopPropagation(); showVideoDetails(${activity.video_id}, '${activity.title}')" 
+                                                    title="View Details">
+                                                <i class="fas fa-info-circle"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            if (container) {
+                container.innerHTML = downloadsHTML;
+            }
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
+        } else {
+            // Show empty state
+            if (container) {
+                container.innerHTML = '';
+            }
+            if (emptyState) {
+                emptyState.style.display = 'block';
+            }
+        }
+        
+    } catch (error) {
+        console.error('Failed to refresh recent downloads:', error);
+        Utils.showToast('Failed to refresh recent downloads', 'error');
+    }
+}
+
+// Refresh popular videos
+async function refreshPopularVideos() {
+    // This would typically make an API call to get updated popular videos
+    // For now, we'll show a simple message
+    Utils.showToast('Popular videos refreshed', 'info');
 }
 </script>

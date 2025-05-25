@@ -19,6 +19,7 @@ router.get('/download', dashboardController.showDownload);
 router.get('/api/stats', dashboardController.getStats);
 router.get('/api/activity', dashboardController.getRecentActivity);
 router.get('/api/search', dashboardController.searchVideos);
+router.get('/api/video/:id', dashboardController.getVideoDetails); // New route for video details
 
 // Admin routes
 router.get('/admin', requireAdmin, dashboardController.showAdmin);

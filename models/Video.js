@@ -70,7 +70,7 @@ class Video {
                 return existingVideo;
             }
 
-            // Create new video with error handling
+            // Create new video with proper escaping
             const query = `
                 INSERT INTO videos (
                     aweme_id, tiktok_id, title, cover_url, video_url, watermark_video_url,
@@ -78,19 +78,36 @@ class Video {
                     download_count, collect_count, author_id, author_name, author_avatar,
                     music_id, music_title, music_author, file_size, watermark_file_size,
                     region, create_time
-                ) VALUES (
-                    '${videoData.aweme_id}', '${videoData.tiktok_id}', '${videoData.title.replace(/'/g, "''")}', 
-                    '${videoData.cover_url}', '${videoData.video_url}', '${videoData.watermark_video_url}',
-                    ${videoData.duration}, ${videoData.play_count}, ${videoData.digg_count}, 
-                    ${videoData.comment_count}, ${videoData.share_count}, ${videoData.download_count}, 
-                    ${videoData.collect_count}, '${videoData.author_id}', '${videoData.author_name.replace(/'/g, "''")}', 
-                    '${videoData.author_avatar || ''}', '${videoData.music_id || ''}', 
-                    '${videoData.music_title?.replace(/'/g, "''") || ''}', '${videoData.music_author?.replace(/'/g, "''") || ''}',
-                    ${videoData.file_size}, ${videoData.watermark_file_size}, '${videoData.region}', ${videoData.create_time}
-                )
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
-            const result = await executeQuery(query);
+            const values = [
+                videoData.aweme_id,
+                videoData.tiktok_id,
+                videoData.title,
+                videoData.cover_url,
+                videoData.video_url,
+                videoData.watermark_video_url,
+                videoData.duration,
+                videoData.play_count,
+                videoData.digg_count,
+                videoData.comment_count,
+                videoData.share_count,
+                videoData.download_count,
+                videoData.collect_count,
+                videoData.author_id,
+                videoData.author_name,
+                videoData.author_avatar || '',
+                videoData.music_id || '',
+                videoData.music_title || '',
+                videoData.music_author || '',
+                videoData.file_size,
+                videoData.watermark_file_size,
+                videoData.region,
+                videoData.create_time
+            ];
+
+            const result = await executeQuery(query, values);
             
             if (result.insertId) {
                 console.log('✅ Video created with ID:', result.insertId);
@@ -233,15 +250,17 @@ class Video {
         return await executeQuery(query, [this.id, limit]);
     }
 
-    // Get popular videos
+    // Get popular videos based on engagement
     static async getPopular(limit = 10) {
         try {
             const query = `
                 SELECT * FROM videos 
-                ORDER BY (play_count + digg_count + share_count) DESC 
+                WHERE play_count > 0 OR digg_count > 0 
+                ORDER BY (play_count * 0.4 + digg_count * 0.3 + share_count * 0.2 + comment_count * 0.1) DESC 
                 LIMIT ?
             `;
             const videos = await executeQuery(query, [parseInt(limit)]);
+            console.log(`Found ${videos.length} popular videos in database`);
             return videos.map(videoData => new Video(videoData));
         } catch (error) {
             console.error('Error getting popular videos:', error);
@@ -265,6 +284,26 @@ class Video {
         }
     }
 
+    // Get videos with most downloads
+    static async getMostDownloaded(limit = 10) {
+        try {
+            const query = `
+                SELECT v.*, COUNT(dh.id) as download_frequency
+                FROM videos v
+                INNER JOIN download_history dh ON v.id = dh.video_id
+                WHERE dh.status = 'completed'
+                GROUP BY v.id
+                ORDER BY download_frequency DESC, v.play_count DESC
+                LIMIT ?
+            `;
+            const videos = await executeQuery(query, [parseInt(limit)]);
+            return videos.map(videoData => new Video(videoData));
+        } catch (error) {
+            console.error('Error getting most downloaded videos:', error);
+            return [];
+        }
+    }
+
     // Format duration in human readable format
     getFormattedDuration() {
         if (!this.duration) return '00:00';
@@ -276,7 +315,7 @@ class Video {
 
     // Format numbers in human readable format (K, M, B)
     static formatCount(count) {
-        if (!count) return '0';
+        if (!count || count === 0) return '0';
         
         if (count >= 1000000000) {
             return (count / 1000000000).toFixed(1) + 'B';
@@ -299,6 +338,74 @@ class Video {
             share_count: Video.formatCount(this.share_count),
             download_count: Video.formatCount(this.download_count),
             collect_count: Video.formatCount(this.collect_count)
+        };
+    }
+
+    // Calculate engagement rate
+    getEngagementRate() {
+        if (!this.play_count || this.play_count === 0) return 0;
+        const totalEngagement = (this.digg_count || 0) + (this.comment_count || 0) + (this.share_count || 0);
+        return ((totalEngagement / this.play_count) * 100).toFixed(2);
+    }
+
+    // Get video quality info
+    getQualityInfo() {
+        return {
+            hasHD: !!this.video_url,
+            hasWatermark: !!this.watermark_video_url,
+            fileSize: this.file_size ? this.formatFileSize(this.file_size) : 'Unknown',
+            watermarkFileSize: this.watermark_file_size ? this.formatFileSize(this.watermark_file_size) : 'Unknown'
+        };
+    }
+
+    // Format file size
+    formatFileSize(bytes) {
+        if (!bytes || bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Get video status
+    getStatus() {
+        const now = Date.now();
+        const created = new Date(this.created_at).getTime();
+        const daysDiff = Math.floor((now - created) / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff === 0) return 'New';
+        if (daysDiff <= 7) return 'Recent';
+        if (daysDiff <= 30) return 'Popular';
+        return 'Archive';
+    }
+
+    // Convert to JSON (for API responses)
+    toJSON() {
+        return {
+            id: this.id,
+            title: this.title,
+            thumbnail: this.cover_url,
+            duration: this.getFormattedDuration(),
+            author: {
+                id: this.author_id,
+                name: this.author_name,
+                avatar: this.author_avatar
+            },
+            music: {
+                id: this.music_id,
+                title: this.music_title,
+                author: this.music_author
+            },
+            stats: this.getFormattedCounts(),
+            downloadUrls: {
+                hd: this.video_url,
+                watermark: this.watermark_video_url
+            },
+            quality: this.getQualityInfo(),
+            engagementRate: this.getEngagementRate(),
+            status: this.getStatus(),
+            createdAt: this.created_at,
+            updatedAt: this.updated_at
         };
     }
 
