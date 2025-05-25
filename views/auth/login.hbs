@@ -1,0 +1,217 @@
+<div class="auth-container">
+    <div class="container-fluid vh-100">
+        <div class="row h-100">
+            <!-- Left Side - Branding -->
+            <div class="col-lg-6 d-none d-lg-flex auth-brand-side">
+                <div class="auth-brand-content">
+                    <div class="text-center text-white">
+                        <i class="fab fa-tiktok display-1 mb-4"></i>
+                        <h1 class="display-4 fw-bold mb-4">{{appName}}</h1>
+                        <p class="lead mb-4">
+                            Professional TikTok video downloader with advanced features
+                        </p>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <i class="fas fa-download fa-2x mb-2"></i>
+                                <p class="small">Single & Bulk Download</p>
+                            </div>
+                            <div class="col-4">
+                                <i class="fas fa-hd-video fa-2x mb-2"></i>
+                                <p class="small">HD Quality</p>
+                            </div>
+                            <div class="col-4">
+                                <i class="fas fa-tint-slash fa-2x mb-2"></i>
+                                <p class="small">No Watermark</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side - Login Form -->
+            <div class="col-lg-6 d-flex align-items-center">
+                <div class="auth-form-container w-100">
+                    <div class="card border-0 shadow-lg">
+                        <div class="card-body p-5">
+                            <!-- Mobile Header -->
+                            <div class="text-center mb-4 d-lg-none">
+                                <i class="fab fa-tiktok fa-3x text-primary mb-3"></i>
+                                <h2 class="fw-bold">{{appName}}</h2>
+                            </div>
+
+                            <div class="text-center mb-4">
+                                <h3 class="fw-bold">Welcome Back</h3>
+                                <p class="text-muted">Sign in to your account</p>
+                            </div>
+
+                            <form id="loginForm">
+                                <input type="hidden" name="_csrf" value="{{csrfToken}}">
+                                
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">
+                                        <i class="fas fa-user me-1"></i>
+                                        Username or Email
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control form-control-lg" 
+                                        id="username" 
+                                        name="username" 
+                                        placeholder="Enter your username or email"
+                                        required
+                                        autocomplete="username"
+                                    >
+                                    <div class="invalid-feedback"></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">
+                                        <i class="fas fa-lock me-1"></i>
+                                        Password
+                                    </label>
+                                    <div class="input-group">
+                                        <input 
+                                            type="password" 
+                                            class="form-control form-control-lg" 
+                                            id="password" 
+                                            name="password" 
+                                            placeholder="Enter your password"
+                                            required
+                                            autocomplete="current-password"
+                                        >
+                                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
+                                    <label class="form-check-label" for="rememberMe">
+                                        Remember me
+                                    </label>
+                                </div>
+
+                                <div class="d-grid mb-3">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-sign-in-alt me-2"></i>
+                                        Sign In
+                                    </button>
+                                </div>
+                            </form>
+
+                            <div class="text-center">
+                                <a href="/auth/forgot-password" class="text-decoration-none">
+                                    Forgot your password?
+                                </a>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <div class="text-center">
+                                <p class="mb-0">Don't have an account?</p>
+                                <a href="/auth/register" class="btn btn-outline-primary mt-2">
+                                    <i class="fas fa-user-plus me-2"></i>
+                                    Create Account
+                                </a>
+                            </div>
+
+                            <!-- Demo Account Info -->
+                            <div class="mt-4 p-3 bg-light rounded">
+                                <h6 class="fw-bold mb-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Demo Account
+                                </h6>
+                                <div class="small">
+                                    <strong>Admin:</strong> admin / admin123<br>
+                                    <em class="text-muted">Full access to all features</em>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.getElementById('loginForm');
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+
+    // Toggle password visibility
+    togglePassword.addEventListener('click', function() {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        
+        const icon = this.querySelector('i');
+        icon.classList.toggle('fa-eye');
+        icon.classList.toggle('fa-eye-slash');
+    });
+
+    // Handle form submission
+    loginForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        try {
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Signing In...';
+            
+            // Clear previous errors
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            
+            const response = await axios.post('/auth/login', formData);
+            
+            if (response.data.success) {
+                // Show success message
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Login Successful!',
+                    text: response.data.message,
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                    window.location.href = response.data.data.redirectUrl || '/dashboard';
+                });
+            }
+            
+        } catch (error) {
+            console.error('Login error:', error);
+            
+            if (error.response?.data?.errors) {
+                // Handle validation errors
+                error.response.data.errors.forEach(err => {
+                    const field = document.querySelector(`[name="${err.param}"]`);
+                    if (field) {
+                        field.classList.add('is-invalid');
+                        const feedback = field.nextElementSibling;
+                        if (feedback && feedback.classList.contains('invalid-feedback')) {
+                            feedback.textContent = err.msg;
+                        }
+                    }
+                });
+            } else {
+                // Show general error
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Login Failed',
+                    text: error.response?.data?.message || 'Please check your credentials and try again.'
+                });
+            }
+            
+        } finally {
+            // Reset button state
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    });
+});
+</script>

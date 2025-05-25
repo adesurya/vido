@@ -1,0 +1,1000 @@
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">
+                        <i class="fas fa-download text-primary me-2"></i>
+                        Download TikTok Videos
+                    </h1>
+                    <p class="text-muted mb-0">
+                        Download single videos or process bulk downloads with CSV files
+                    </p>
+                </div>
+                <div>
+                    <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#helpModal">
+                        <i class="fas fa-question-circle me-1"></i>
+                        Help
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Configuration Warning -->
+    <div id="apiWarning" class="row mb-4 d-none">
+        <div class="col">
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <div class="d-flex align-items-start">
+                    <i class="fas fa-exclamation-triangle fa-2x me-3 mt-1"></i>
+                    <div>
+                        <h6 class="alert-heading">Demo Mode Active</h6>
+                        <p class="mb-2">
+                            TikTok API is not configured. The application is running in demo mode with sample data.
+                        </p>
+                        <small class="text-muted">
+                            To enable real downloads, configure your RapidAPI key in the .env file.
+                        </small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Single Download -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-video me-2"></i>
+                        Single Video Download
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="singleDownloadForm">
+                        <div class="mb-3">
+                            <label for="videoUrl" class="form-label">TikTok Video URL</label>
+                            <div class="input-group">
+                                <input 
+                                    type="url" 
+                                    class="form-control" 
+                                    id="videoUrl" 
+                                    name="url" 
+                                    placeholder="https://www.tiktok.com/@username/video/123456789"
+                                    required
+                                >
+                                <button class="btn btn-outline-secondary" type="button" id="pasteBtn">
+                                    <i class="fas fa-paste"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                Paste any TikTok video URL here. Supports all TikTok URL formats.
+                            </div>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-download me-2"></i>
+                                Download Video
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Single Download Result -->
+                    <div id="singleResult" class="mt-4 d-none">
+                        <hr>
+                        <h6 class="fw-bold">Download Ready</h6>
+                        <div id="singleVideoCard"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Download -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-layer-group me-2"></i>
+                        Bulk Video Download
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label mb-0">Upload CSV File</label>
+                            <a href="/api/download/template" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-download me-1"></i>
+                                Download Template
+                            </a>
+                        </div>
+                        
+                        <div class="upload-area" id="uploadArea">
+                            <div class="upload-content">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                <p class="mb-2">
+                                    <strong>Click to upload</strong> or drag and drop your CSV file here
+                                </p>
+                                <p class="small text-muted mb-0">
+                                    Maximum file size: 10MB | Supported: CSV files only
+                                </p>
+                            </div>
+                            <input type="file" id="bulkFile" name="bulkFile" accept=".csv" class="d-none">
+                        </div>
+                        
+                        <div class="form-text">
+                            CSV file should contain TikTok URLs in the first column. 
+                            <a href="#" data-bs-toggle="modal" data-bs-target="#csvFormatModal">View format details</a>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="button" class="btn btn-success btn-lg" id="uploadBulkBtn" disabled>
+                            <i class="fas fa-upload me-2"></i>
+                            Start Bulk Download
+                        </button>
+                    </div>
+
+                    <!-- Bulk Progress -->
+                    <div id="bulkProgress" class="mt-4 d-none">
+                        <hr>
+                        <h6 class="fw-bold">
+                            <i class="fas fa-spinner fa-spin me-2"></i>
+                            Processing Bulk Download
+                        </h6>
+                        <div class="progress mb-2">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 id="progressBar" 
+                                 role="progressbar" 
+                                 style="width: 0%">
+                                0%
+                            </div>
+                        </div>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <span class="badge bg-primary" id="totalVideos">0</span>
+                                <div class="small text-muted">Total</div>
+                            </div>
+                            <div class="col-4">
+                                <span class="badge bg-success" id="processedVideos">0</span>
+                                <div class="small text-muted">Processed</div>
+                            </div>
+                            <div class="col-4">
+                                <span class="badge bg-info" id="successfulVideos">0</span>
+                                <div class="small text-muted">Successful</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bulk Results -->
+                    <div id="bulkResults" class="mt-4 d-none">
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Bulk Download Complete
+                            </h6>
+                            <button class="btn btn-sm btn-outline-secondary" id="downloadAllBtn">
+                                <i class="fas fa-download me-1"></i>
+                                Download All
+                            </button>
+                        </div>
+                        <div id="bulkResultsContainer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Downloads -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-history me-2"></i>
+                            Recent Downloads
+                        </h5>
+                        <button class="btn btn-sm btn-outline-primary" id="refreshHistoryBtn">
+                            <i class="fas fa-sync-alt me-1"></i>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="recentDownloads">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Loading recent downloads...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div class="modal fade" id="helpModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-question-circle me-2"></i>
+                    How to Use TikTok Downloader
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="fw-bold">
+                            <i class="fas fa-video me-2 text-primary"></i>
+                            Single Download
+                        </h6>
+                        <ol>
+                            <li>Copy a TikTok video URL</li>
+                            <li>Paste it in the URL field</li>
+                            <li>Click "Download Video"</li>
+                            <li>Choose HD or watermarked version</li>
+                        </ol>
+                        
+                        <h6 class="fw-bold mt-4">
+                            <i class="fas fa-link me-2 text-info"></i>
+                            Supported URL Formats
+                        </h6>
+                        <ul class="small">
+                            <li>https://www.tiktok.com/@user/video/123</li>
+                            <li>https://vm.tiktok.com/abc123</li>
+                            <li>https://www.tiktok.com/t/abc123</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="fw-bold">
+                            <i class="fas fa-layer-group me-2 text-success"></i>
+                            Bulk Download
+                        </h6>
+                        <ol>
+                            <li>Download CSV template</li>
+                            <li>Add TikTok URLs to the template</li>
+                            <li>Upload the CSV file</li>
+                            <li>Monitor progress in real-time</li>
+                            <li>Download processed videos</li>
+                        </ol>
+                        
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Rate Limit:</strong> 2 videos per second to ensure quality processing
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSV Format Modal -->
+<div class="modal fade" id="csvFormatModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-csv me-2"></i>
+                    CSV Format Guide
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6 class="fw-bold">Required Format:</h6>
+                <div class="bg-light p-3 rounded mb-3">
+                    <code>
+                        url,title,notes<br>
+                        https://www.tiktok.com/@user/video/123,Video Title,Optional notes<br>
+                        https://www.tiktok.com/@user/video/456,Another Video,More notes
+                    </code>
+                </div>
+                
+                <h6 class="fw-bold">Rules:</h6>
+                <ul>
+                    <li>First column must contain TikTok URLs</li>
+                    <li>Header row is required</li>
+                    <li>Maximum 100 URLs per file</li>
+                    <li>File size limit: 10MB</li>
+                    <li>Only CSV format is supported</li>
+                </ul>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Invalid URLs will be skipped during processing
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="/api/download/template" class="btn btn-primary">
+                    <i class="fas fa-download me-2"></i>
+                    Download Template
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize download functionality
+    window.downloadManager = new TikTokDownloadManager();
+    
+    // Check API configuration status
+    window.downloadManager.checkApiStatus();
+    
+    // Load recent downloads on page load
+    window.downloadManager.loadRecentDownloads();
+});
+
+class TikTokDownloadManager {
+    constructor() {
+        this.currentBatchId = null;
+        this.progressInterval = null;
+        this.apiConfigured = true; // Will be checked on init
+        this.selectedFile = null; // For manual file selection fallback
+        this.initializeEventListeners();
+    }
+
+    // Check if API is configured
+    async checkApiStatus() {
+        try {
+            const response = await HttpClient.get('/api/health');
+            
+            // Check if we're in demo mode
+            if (response.message && response.message.includes('demo')) {
+                this.apiConfigured = false;
+                this.showApiWarning();
+            }
+        } catch (error) {
+            console.warn('Could not check API status:', error);
+            // Don't show warning if we can't determine status
+        }
+    }
+
+    // Show API configuration warning
+    showApiWarning() {
+        const warningEl = document.getElementById('apiWarning');
+        if (warningEl) {
+            warningEl.classList.remove('d-none');
+        }
+    }
+
+    initializeEventListeners() {
+        // Single download form
+        const singleDownloadForm = document.getElementById('singleDownloadForm');
+        if (singleDownloadForm) {
+            singleDownloadForm.addEventListener('submit', (e) => {
+                this.handleSingleDownload(e);
+            });
+        }
+
+        // Paste button
+        const pasteBtn = document.getElementById('pasteBtn');
+        if (pasteBtn) {
+            pasteBtn.addEventListener('click', async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    const videoUrlInput = document.getElementById('videoUrl');
+                    if (videoUrlInput) {
+                        videoUrlInput.value = text;
+                    }
+                } catch (err) {
+                    console.error('Failed to read clipboard:', err);
+                    Utils.showToast('Failed to read clipboard', 'error');
+                }
+            });
+        }
+
+        // File upload area
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('bulkFile');
+
+        if (uploadArea && fileInput) {
+            // Click to upload
+            uploadArea.addEventListener('click', (e) => {
+                // Don't trigger if clicking on remove button
+                if (!e.target.closest('.btn-outline-danger')) {
+                    fileInput.click();
+                }
+            });
+            
+            // Drag and drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('drag-over');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('drag-over');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('drag-over');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    // Create a new FileList-like object
+                    try {
+                        const dt = new DataTransfer();
+                        dt.items.add(files[0]);
+                        fileInput.files = dt.files;
+                        this.handleFileSelection();
+                    } catch (error) {
+                        // Fallback for browsers that don't support DataTransfer
+                        console.log('DataTransfer not supported, using manual file handling');
+                        this.handleManualFileSelection(files[0]);
+                    }
+                }
+            });
+
+            // File input change
+            fileInput.addEventListener('change', (e) => {
+                console.log('File input changed, files:', e.target.files?.length || 0);
+                this.handleFileSelection();
+            });
+        } else {
+            console.error('Upload area elements not found:', {
+                uploadArea: !!uploadArea,
+                fileInput: !!fileInput
+            });
+        }
+
+        // Bulk upload button
+        const uploadBulkBtn = document.getElementById('uploadBulkBtn');
+        if (uploadBulkBtn) {
+            uploadBulkBtn.addEventListener('click', () => {
+                this.handleBulkUpload();
+            });
+        }
+
+        // Refresh history button
+        const refreshHistoryBtn = document.getElementById('refreshHistoryBtn');
+        if (refreshHistoryBtn) {
+            refreshHistoryBtn.addEventListener('click', () => {
+                this.loadRecentDownloads();
+            });
+        }
+    }
+
+    async handleSingleDownload(e) {
+        e.preventDefault();
+        
+        const form = e.target;
+        const formData = new FormData(form);
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        try {
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+            
+            // Clear previous results
+            document.getElementById('singleResult').classList.add('d-none');
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            
+            const response = await axios.post('/api/download/single', formData);
+            
+            if (response.data.success) {
+                this.displaySingleResult(response.data.data.video);
+                form.reset();
+                
+                // Reload recent downloads
+                this.loadRecentDownloads();
+            }
+            
+        } catch (error) {
+            console.error('Single download error:', error);
+            
+            if (error.response?.status === 429) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Rate Limit Exceeded',
+                    text: 'Please wait before downloading another video.',
+                    timer: 3000
+                });
+            } else if (error.response?.data?.errors) {
+                // Handle validation errors
+                error.response.data.errors.forEach(err => {
+                    const field = document.querySelector(`[name="${err.param}"]`);
+                    if (field) {
+                        field.classList.add('is-invalid');
+                        const feedback = field.nextElementSibling;
+                        if (feedback?.classList.contains('invalid-feedback')) {
+                            feedback.textContent = err.msg;
+                        }
+                    }
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Download Failed',
+                    text: error.response?.data?.message || 'Failed to process video'
+                });
+            }
+            
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    }
+
+    // Handle manual file selection (fallback for drag & drop)
+    handleManualFileSelection(file) {
+        if (!file) return;
+        
+        // Validate file type
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            Utils.showToast('Please select a CSV file', 'error');
+            return;
+        }
+        
+        // Validate file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+            Utils.showToast('File size must be less than 10MB', 'error');
+            return;
+        }
+        
+        // Store file reference for upload
+        this.selectedFile = file;
+        
+        // Update UI
+        const uploadArea = document.getElementById('uploadArea');
+        const uploadBtn = document.getElementById('uploadBulkBtn');
+        
+        if (uploadArea) {
+            uploadArea.innerHTML = `
+                <div class="upload-content">
+                    <i class="fas fa-file-csv fa-3x text-success mb-3"></i>
+                    <p class="mb-2"><strong>${file.name}</strong></p>
+                    <p class="small text-muted mb-0">${this.formatFileSize(file.size)}</p>
+                    <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="window.downloadManager.clearSelectedFile()">
+                        <i class="fas fa-times me-1"></i>Remove
+                    </button>
+                </div>
+            `;
+        }
+        
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+        }
+    }
+
+    handleFileSelection() {
+        const fileInput = document.getElementById('bulkFile');
+        const uploadBtn = document.getElementById('uploadBulkBtn');
+        const uploadArea = document.getElementById('uploadArea');
+        
+        // Debug logging
+        console.log('handleFileSelection called');
+        console.log('Elements found:', {
+            fileInput: !!fileInput,
+            uploadBtn: !!uploadBtn,
+            uploadArea: !!uploadArea
+        });
+        
+        // Check if elements exist
+        if (!fileInput) {
+            console.error('File input element not found');
+            return;
+        }
+        
+        if (!uploadBtn) {
+            console.error('Upload button element not found');
+            return;
+        }
+        
+        if (!uploadArea) {
+            console.error('Upload area element not found');
+            return;
+        }
+        
+        if (fileInput.files && fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            console.log('File selected:', file.name, file.size);
+            
+            // Validate file type
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                Utils.showToast('Please select a CSV file', 'error');
+                fileInput.value = '';
+                this.resetUploadArea();
+                return;
+            }
+            
+            // Validate file size (10MB limit)
+            if (file.size > 10 * 1024 * 1024) {
+                Utils.showToast('File size must be less than 10MB', 'error');
+                fileInput.value = '';
+                this.resetUploadArea();
+                return;
+            }
+            
+            // Update UI to show selected file
+            uploadArea.innerHTML = `
+                <div class="upload-content">
+                    <i class="fas fa-file-csv fa-3x text-success mb-3"></i>
+                    <p class="mb-2"><strong>${file.name}</strong></p>
+                    <p class="small text-muted mb-0">${this.formatFileSize(file.size)}</p>
+                    <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="window.downloadManager.clearSelectedFile()">
+                        <i class="fas fa-times me-1"></i>Remove
+                    </button>
+                </div>
+            `;
+            
+            uploadBtn.disabled = false;
+        } else {
+            console.log('No files selected');
+            this.resetUploadArea();
+            uploadBtn.disabled = true;
+        }
+    }
+
+    // Reset upload area to initial state
+    resetUploadArea() {
+        const uploadArea = document.getElementById('uploadArea');
+        const uploadBtn = document.getElementById('uploadBulkBtn');
+        
+        if (uploadArea) {
+            uploadArea.innerHTML = `
+                <div class="upload-content">
+                    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                    <p class="mb-2">
+                        <strong>Click to upload</strong> or drag and drop your CSV file here
+                    </p>
+                    <p class="small text-muted mb-0">
+                        Maximum file size: 10MB | Supported: CSV files only
+                    </p>
+                </div>
+            `;
+        }
+        
+        if (uploadBtn) {
+            uploadBtn.disabled = true;
+        }
+    }
+
+    // Clear selected file
+    clearSelectedFile() {
+        const fileInput = document.getElementById('bulkFile');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+        this.resetUploadArea();
+    }
+
+    async handleBulkUpload() {
+        const fileInput = document.getElementById('bulkFile');
+        const uploadBtn = document.getElementById('uploadBulkBtn');
+        
+        // Check if file input exists
+        if (!fileInput) {
+            Utils.showToast('File input not found', 'error');
+            return;
+        }
+        
+        let file = null;
+        
+        // Check for file from input or manual selection
+        if (fileInput.files && fileInput.files.length > 0) {
+            file = fileInput.files[0];
+        } else if (this.selectedFile) {
+            file = this.selectedFile;
+        }
+        
+        if (!file) {
+            Utils.showToast('Please select a CSV file first', 'warning');
+            return;
+        }
+        
+        // Validate file type
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            Utils.showToast('Please select a CSV file', 'error');
+            return;
+        }
+        
+        // Validate file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+            Utils.showToast('File size must be less than 10MB', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('bulkFile', file);
+        
+        try {
+            if (uploadBtn) {
+                uploadBtn.disabled = true;
+                uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
+            }
+            
+            console.log('Uploading file:', file.name, file.size);
+            
+            const response = await HttpClient.post('/api/download/bulk/upload', formData, {
+                headers: {
+                    // Let browser set Content-Type for FormData
+                }
+            });
+            
+            console.log('Upload response:', response);
+            
+            if (response.success) {
+                this.currentBatchId = response.data.batchId;
+                this.showBulkProgress(response.data);
+                this.startProgressMonitoring();
+                
+                Utils.showToast('Bulk upload started successfully', 'success');
+            } else {
+                throw new Error(response.message || 'Upload failed');
+            }
+            
+        } catch (error) {
+            console.error('Bulk upload error:', error);
+            
+            let errorMessage = 'Failed to upload file';
+            if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            Utils.showToast(errorMessage, 'error');
+            
+        } finally {
+            if (uploadBtn) {
+                const hasFile = (fileInput.files && fileInput.files.length > 0) || this.selectedFile;
+                uploadBtn.disabled = !hasFile;
+                uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Start Bulk Download';
+            }
+        }
+    }
+
+    showBulkProgress(data) {
+        const progressDiv = document.getElementById('bulkProgress');
+        const resultsDiv = document.getElementById('bulkResults');
+        
+        progressDiv.classList.remove('d-none');
+        resultsDiv.classList.add('d-none');
+        
+        document.getElementById('totalVideos').textContent = data.totalUrls;
+        document.getElementById('processedVideos').textContent = '0';
+        document.getElementById('successfulVideos').textContent = '0';
+    }
+
+    startProgressMonitoring() {
+        if (this.progressInterval) {
+            clearInterval(this.progressInterval);
+        }
+        
+        this.progressInterval = setInterval(async () => {
+            try {
+                const response = await axios.get(`/api/download/bulk/status/${this.currentBatchId}`);
+                const status = response.data.data;
+                
+                this.updateProgress(status);
+                
+                if (status.status === 'completed') {
+                    clearInterval(this.progressInterval);
+                    this.loadBulkResults();
+                    this.loadRecentDownloads();
+                }
+                
+            } catch (error) {
+                console.error('Progress monitoring error:', error);
+                clearInterval(this.progressInterval);
+            }
+        }, 1000);
+    }
+
+    updateProgress(status) {
+        const progressBar = document.getElementById('progressBar');
+        const progress = status.progress || 0;
+        
+        progressBar.style.width = `${progress}%`;
+        progressBar.textContent = `${progress}%`;
+        
+        document.getElementById('processedVideos').textContent = status.processedVideos || 0;
+        document.getElementById('successfulVideos').textContent = status.successfulDownloads || 0;
+        
+        if (progress === 100) {
+            progressBar.classList.remove('progress-bar-animated');
+        }
+    }
+
+    async loadBulkResults() {
+        try {
+            const response = await axios.get(`/api/download/bulk/results/${this.currentBatchId}`);
+            
+            if (response.data.success) {
+                this.displayBulkResults(response.data.data.results);
+            }
+            
+        } catch (error) {
+            console.error('Load bulk results error:', error);
+        }
+    }
+
+    displaySingleResult(video) {
+        const resultDiv = document.getElementById('singleResult');
+        const cardContainer = document.getElementById('singleVideoCard');
+        
+        cardContainer.innerHTML = this.createVideoCard(video);
+        resultDiv.classList.remove('d-none');
+    }
+
+    displayBulkResults(results) {
+        const progressDiv = document.getElementById('bulkProgress');
+        const resultsDiv = document.getElementById('bulkResults');
+        const container = document.getElementById('bulkResultsContainer');
+        
+        progressDiv.classList.add('d-none');
+        resultsDiv.classList.remove('d-none');
+        
+        if (results.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center">No videos were successfully processed.</p>';
+            return;
+        }
+        
+        const videosHtml = results.map(video => this.createVideoCard(video)).join('');
+        container.innerHTML = `<div class="row">${videosHtml}</div>`;
+    }
+
+    createVideoCard(video) {
+        return `
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card video-card h-100">
+                    <div class="position-relative">
+                        <img src="${video.thumbnail}" class="card-img-top video-thumbnail" alt="Video thumbnail">
+                        <div class="video-duration">${video.duration}</div>
+                        <button class="btn btn-primary btn-sm play-btn" onclick="playVideo('${video.downloadUrls.hd}')">
+                            <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                    <div class="card-body p-3">
+                        <h6 class="card-title text-truncate" title="${video.title}">
+                            ${video.title}
+                        </h6>
+                        <div class="d-flex align-items-center mb-2">
+                            <img src="${video.author.avatar}" class="rounded-circle me-2" width="24" height="24" alt="Author">
+                            <small class="text-muted">${video.author.name}</small>
+                        </div>
+                        <div class="video-stats mb-3">
+                            <span class="badge bg-light text-dark me-1">
+                                <i class="fas fa-play"></i> ${video.stats.play_count}
+                            </span>
+                            <span class="badge bg-light text-dark me-1">
+                                <i class="fas fa-heart"></i> ${video.stats.digg_count}
+                            </span>
+                            <span class="badge bg-light text-dark me-1">
+                                <i class="fas fa-comment"></i> ${video.stats.comment_count}
+                            </span>
+                            <span class="badge bg-light text-dark">
+                                <i class="fas fa-share"></i> ${video.stats.share_count}
+                            </span>
+                        </div>
+                        <div class="btn-group w-100" role="group">
+                            <a href="${video.downloadUrls.hd}" class="btn btn-primary btn-sm" download>
+                                <i class="fas fa-download"></i> HD
+                            </a>
+                            <a href="${video.downloadUrls.watermark}" class="btn btn-outline-primary btn-sm" download>
+                                <i class="fas fa-download"></i> With Watermark
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async loadRecentDownloads() {
+        const container = document.getElementById('recentDownloads');
+        
+        try {
+            const response = await axios.get('/api/download/history?limit=6');
+            
+            if (response.data.success && response.data.data.history.length > 0) {
+                const historyHtml = response.data.data.history.map(item => `
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-start">
+                                    <img src="${item.video.thumbnail}" class="rounded me-3" width="60" height="60" alt="Thumbnail">
+                                    <div class="flex-grow-1">
+                                        <h6 class="card-title mb-1 text-truncate">${item.video.title}</h6>
+                                        <p class="card-text small text-muted mb-2">
+                                            by ${item.video.author} • ${item.video.duration}
+                                        </p>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="badge bg-${item.status === 'completed' ? 'success' : 'warning'}">
+                                                ${item.status}
+                                            </span>
+                                            <small class="text-muted">${new Date(item.downloadedAt).toLocaleDateString()}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                container.innerHTML = `<div class="row">${historyHtml}</div>`;
+            } else {
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No recent downloads found</p>
+                    </div>
+                `;
+            }
+            
+        } catch (error) {
+            console.error('Load recent downloads error:', error);
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <p class="text-muted">Failed to load recent downloads</p>
+                </div>
+            `;
+        }
+    }
+
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+}
+
+// Global function for video player
+function playVideo(url) {
+    const videoModal = `
+        <div class="modal fade" id="videoModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Video Preview</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-0">
+                        <video controls class="w-100" autoplay>
+                            <source src="${url}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal
+    const existingModal = document.getElementById('videoModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add new modal
+    document.body.insertAdjacentHTML('beforeend', videoModal);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('videoModal'));
+    modal.show();
+    
+    // Clean up when modal is hidden
+    document.getElementById('videoModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+</script>

@@ -1,0 +1,278 @@
+<div class="container-fluid py-4">
+    <!-- Welcome Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">
+                        Welcome back, {{user.username}}! 👋
+                    </h1>
+                    <p class="text-muted mb-0">
+                        Here's what's happening with your downloads today.
+                    </p>
+                </div>
+                <div>
+                    <a href="/dashboard/download" class="btn btn-primary">
+                        <i class="fas fa-download me-2"></i>
+                        Start Downloading
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card stats-card text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="stats-number">{{formatNumber stats.total_downloads}}</div>
+                            <div class="fw-bold">Total Downloads</div>
+                            <small class="opacity-75">All time</small>
+                        </div>
+                        <div class="stats-icon">
+                            <i class="fas fa-download"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="stats-number">{{formatNumber stats.successful_downloads}}</div>
+                            <div class="fw-bold">Successful</div>
+                            <small class="opacity-75">{{percentage stats.successful_downloads stats.total_downloads}} success rate</small>
+                        </div>
+                        <div class="stats-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="stats-number">{{formatNumber stats.bulk_downloads}}</div>
+                            <div class="fw-bold">Bulk Downloads</div>
+                            <small class="opacity-75">Batch processing</small>
+                        </div>
+                        <div class="stats-icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="stats-number">{{formatNumber stats.recent_downloads}}</div>
+                            <div class="fw-bold">Recent</div>
+                            <small class="opacity-75">Last 24 hours</small>
+                        </div>
+                        <div class="stats-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Downloads -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-history me-2"></i>
+                            Recent Downloads
+                        </h5>
+                        <a href="/dashboard/download" class="btn btn-sm btn-outline-primary">
+                            View All
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {{#if recentDownloads}}
+                    <div class="row">
+                        {{#each recentDownloads}}
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <img src="{{cover_url}}" class="rounded me-3" width="60" height="60" alt="Thumbnail">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1 text-truncate" title="{{title}}">{{truncate title 40}}</h6>
+                                    <p class="mb-1 small text-muted">
+                                        by {{author_name}} • {{formattedDuration}}
+                                    </p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge bg-{{#if (eq download_type 'bulk')}}info{{else}}primary{{/if}}">
+                                            {{download_type}}
+                                        </span>
+                                        <small class="text-muted">{{formatDate downloaded_at}}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{/each}}
+                    </div>
+                    {{else}}
+                    <div class="text-center py-4">
+                        <i class="fas fa-download fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">No downloads yet</h6>
+                        <p class="text-muted mb-3">Start by downloading your first TikTok video!</p>
+                        <a href="/dashboard/download" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>
+                            Start Downloading
+                        </a>
+                    </div>
+                    {{/if}}
+                </div>
+            </div>
+        </div>
+
+        <!-- Popular Videos -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-fire me-2"></i>
+                        Popular Videos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {{#if popularVideos}}
+                    {{#each popularVideos}}
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="{{cover_url}}" class="rounded me-3" width="50" height="50" alt="Thumbnail">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1 text-truncate" title="{{title}}">{{truncate title 30}}</h6>
+                            <div class="small text-muted">
+                                <span class="me-2">
+                                    <i class="fas fa-play"></i> {{formattedCounts.play_count}}
+                                </span>
+                                <span>
+                                    <i class="fas fa-heart"></i> {{formattedCounts.digg_count}}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {{/each}}
+                    {{else}}
+                    <div class="text-center py-3">
+                        <i class="fas fa-video fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No popular videos yet</p>
+                    </div>
+                    {{/if}}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <a href="/dashboard/download" class="btn btn-outline-primary btn-lg w-100 h-100">
+                                <div class="py-3">
+                                    <i class="fas fa-download fa-2x mb-2"></i>
+                                    <div class="fw-bold">Single Download</div>
+                                    <small class="text-muted">Download one video</small>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="/dashboard/download#bulk" class="btn btn-outline-success btn-lg w-100 h-100">
+                                <div class="py-3">
+                                    <i class="fas fa-layer-group fa-2x mb-2"></i>
+                                    <div class="fw-bold">Bulk Download</div>
+                                    <small class="text-muted">Upload CSV file</small>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="/api/download/template" class="btn btn-outline-info btn-lg w-100 h-100">
+                                <div class="py-3">
+                                    <i class="fas fa-file-csv fa-2x mb-2"></i>
+                                    <div class="fw-bold">CSV Template</div>
+                                    <small class="text-muted">Download template</small>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="/docs" class="btn btn-outline-secondary btn-lg w-100 h-100">
+                                <div class="py-3">
+                                    <i class="fas fa-book fa-2x mb-2"></i>
+                                    <div class="fw-bold">API Docs</div>
+                                    <small class="text-muted">Developer guide</small>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize dashboard
+    loadDashboardStats();
+    
+    // Auto-refresh stats every 30 seconds
+    setInterval(loadDashboardStats, 30000);
+});
+
+async function loadDashboardStats() {
+    try {
+        const response = await HttpClient.get('/dashboard/api/stats');
+        
+        if (response.success) {
+            updateStatsDisplay(response.data);
+        }
+    } catch (error) {
+        console.error('Failed to load dashboard stats:', error);
+    }
+}
+
+function updateStatsDisplay(stats) {
+    // Update stat numbers if elements exist
+    const elements = [
+        { selector: '.stats-number', key: 'total_downloads' },
+        { selector: '.stats-number', key: 'successful_downloads' },
+        { selector: '.stats-number', key: 'bulk_downloads' },
+        { selector: '.stats-number', key: 'recent_downloads' }
+    ];
+    
+    elements.forEach((element, index) => {
+        const statsElements = document.querySelectorAll(element.selector);
+        if (statsElements[index]) {
+            statsElements[index].textContent = Utils.formatNumber(stats[element.key] || 0);
+        }
+    });
+}
+</script>

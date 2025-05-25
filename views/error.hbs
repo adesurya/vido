@@ -1,0 +1,155 @@
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+            <div class="text-center">
+                <!-- Error Icon -->
+                <div class="error-icon mb-4">
+                    {{#if (eq error.status 404)}}
+                        <i class="fas fa-search fa-5x text-warning mb-3"></i>
+                    {{else if (eq error.status 403)}}
+                        <i class="fas fa-lock fa-5x text-danger mb-3"></i>
+                    {{else if (eq error.status 500)}}
+                        <i class="fas fa-exclamation-triangle fa-5x text-danger mb-3"></i>
+                    {{else}}
+                        <i class="fas fa-exclamation-circle fa-5x text-secondary mb-3"></i>
+                    {{/if}}
+                </div>
+
+                <!-- Error Status -->
+                <h1 class="display-1 fw-bold text-primary mb-3">
+                    {{#if error.status}}{{error.status}}{{else}}Error{{/if}}
+                </h1>
+
+                <!-- Error Title -->
+                <h2 class="h3 mb-3">
+                    {{#if (eq error.status 404)}}
+                        Page Not Found
+                    {{else if (eq error.status 403)}}
+                        Access Forbidden
+                    {{else if (eq error.status 500)}}
+                        Internal Server Error
+                    {{else}}
+                        Something Went Wrong
+                    {{/if}}
+                </h2>
+
+                <!-- Error Message -->
+                <p class="lead text-muted mb-4">
+                    {{#if error.message}}
+                        {{error.message}}
+                    {{else if (eq error.status 404)}}
+                        The page you are looking for could not be found.
+                    {{else if (eq error.status 403)}}
+                        You don't have permission to access this resource.
+                    {{else if (eq error.status 500)}}
+                        The server encountered an internal error and could not complete your request.
+                    {{else}}
+                        An unexpected error occurred. Please try again later.
+                    {{/if}}
+                </p>
+
+                <!-- Action Buttons -->
+                <div class="error-actions">
+                    {{#if isAuthenticated}}
+                        <a href="/dashboard" class="btn btn-primary btn-lg me-3">
+                            <i class="fas fa-tachometer-alt me-2"></i>
+                            Go to Dashboard
+                        </a>
+                    {{else}}
+                        <a href="/" class="btn btn-primary btn-lg me-3">
+                            <i class="fas fa-home me-2"></i>
+                            Go Home
+                        </a>
+                    {{/if}}
+                    
+                    <button onclick="history.back()" class="btn btn-outline-secondary btn-lg">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Go Back
+                    </button>
+                </div>
+
+                <!-- Additional Help -->
+                <div class="mt-5 pt-4 border-top">
+                    <h6 class="text-muted mb-3">Need Help?</h6>
+                    <div class="row text-center">
+                        <div class="col-md-4 mb-3">
+                            <a href="/" class="text-decoration-none">
+                                <i class="fas fa-home fa-2x text-primary mb-2 d-block"></i>
+                                <small>Home Page</small>
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="/docs" class="text-decoration-none">
+                                <i class="fas fa-book fa-2x text-info mb-2 d-block"></i>
+                                <small>Documentation</small>
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="/about" class="text-decoration-none">
+                                <i class="fas fa-info-circle fa-2x text-success mb-2 d-block"></i>
+                                <small>About Us</small>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Development Info (only in development) -->
+                {{#if (eq nodeEnv 'development')}}
+                {{#if error.stack}}
+                <div class="mt-5 pt-4 border-top">
+                    <details class="text-start">
+                        <summary class="btn btn-sm btn-outline-danger mb-3">
+                            <i class="fas fa-bug me-1"></i>
+                            Show Error Details (Development Only)
+                        </summary>
+                        <div class="alert alert-danger">
+                            <h6>Error Stack Trace:</h6>
+                            <pre class="small mb-0">{{error.stack}}</pre>
+                        </div>
+                    </details>
+                </div>
+                {{/if}}
+                {{/if}}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.error-icon {
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 20%, 60%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-20px);
+    }
+    80% {
+        transform: translateY(-10px);
+    }
+}
+
+.error-actions .btn {
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    .error-actions .btn {
+        display: block;
+        width: 100%;
+        margin-right: 0 !important;
+    }
+}
+
+pre {
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+}
+</style>

@@ -1,0 +1,5 @@
+url,title,notes
+https://www.tiktok.com/@username/video/1234567890123456789,Sample Video Title,Optional notes for this video
+https://www.tiktok.com/@username/video/9876543210987654321,Another Video Title,Another optional note
+https://vm.tiktok.com/ZMhvBQxYz,Short URL Format,This also works
+https://www.tiktok.com/t/ZTRfoBALp,Another Short Format,All TikTok URL formats supported
