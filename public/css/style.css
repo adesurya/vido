@@ -441,6 +441,301 @@ body {
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
+/* TAMBAHKAN CSS INI ke file public/css/style.css */
+
+/* Video Duration Badges */
+.video-duration-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    z-index: 2;
+}
+
+.video-duration-small {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    z-index: 2;
+}
+
+/* Video Play Overlay */
+.video-play-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 24px;
+    background: rgba(99, 102, 241, 0.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.7rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 3;
+}
+
+.recent-download-card:hover .video-play-overlay,
+.popular-video-item:hover .video-play-overlay {
+    opacity: 1;
+}
+
+/* Modal Improvements */
+.modal-content {
+    border-radius: 0.75rem;
+    border: none;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.modal-header {
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    padding: 1.5rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid rgba(0,0,0,0.1);
+    padding: 1.5rem;
+}
+
+/* Recent Download Cards */
+.recent-download-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(0,0,0,0.1);
+    cursor: pointer;
+}
+
+.recent-download-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-color: var(--primary-color);
+}
+
+/* Popular Video Items */
+.popular-video-item {
+    transition: background-color 0.2s ease;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+}
+
+.popular-video-item:hover {
+    background-color: rgba(0,0,0,0.05);
+}
+
+/* Video Stats Badges */
+.video-stats .badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+}
+
+/* Upload Area Enhancements */
+.upload-area {
+    position: relative;
+    overflow: hidden;
+}
+
+.upload-area input[type="file"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.upload-content {
+    position: relative;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.upload-content button {
+    pointer-events: all;
+}
+
+/* Loading States */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: inherit;
+    z-index: 10;
+}
+
+/* Button Group Improvements */
+.btn-group-sm .btn {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+/* Progress Bar Enhancements */
+.progress {
+    height: 1.2rem;
+    background-color: #e9ecef;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 0.3s ease;
+}
+
+/* Responsive Improvements */
+@media (max-width: 768px) {
+    .recent-download-card .card-body {
+        padding: 1rem;
+    }
+    
+    .video-stats .badge {
+        font-size: 0.6rem;
+        padding: 0.1rem 0.3rem;
+    }
+    
+    .modal-lg {
+        max-width: 95%;
+        margin: 1rem auto;
+    }
+    
+    .btn-group-sm .btn {
+        padding: 0.15rem 0.4rem;
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .recent-download-card .d-flex {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .recent-download-card .position-relative {
+        margin-bottom: 0.5rem;
+        align-self: center;
+    }
+    
+    .recent-download-card .flex-grow-1 {
+        flex-grow: 0;
+        width: 100%;
+    }
+    
+    .video-duration-badge {
+        font-size: 0.6rem;
+        padding: 1px 4px;
+    }
+    
+    .modal-header, .modal-body, .modal-footer {
+        padding: 1rem;
+    }
+}
+
+/* Error States */
+.error-state {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+
+.error-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* Success States */
+.success-state {
+    text-align: center;
+    padding: 2rem;
+    color: #198754;
+}
+
+.success-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+/* Animation Classes */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.slide-up {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .modal-content {
+        background-color: #1a1a1a;
+        color: #ffffff;
+    }
+    
+    .modal-header, .modal-footer {
+        border-color: #333;
+    }
+    
+    .bg-light {
+        background-color: #2d2d2d !important;
+        color: #ffffff;
+    }
+    
+    .text-muted {
+        color: #adb5bd !important;
+    }
+    
+    .recent-download-card {
+        background-color: #2d2d2d;
+        border-color: #333;
+        color: #ffffff;
+    }
+    
+    .recent-download-card:hover {
+        background-color: #3d3d3d;
+        border-color: var(--primary-color);
+    }
+}
+
 /* Animations */
 @keyframes fadeInUp {
     from {

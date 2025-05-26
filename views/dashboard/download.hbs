@@ -221,6 +221,44 @@
     </div>
 </div>
 
+<!-- Video Details Modal -->
+<div class="modal fade" id="downloadVideoDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-video me-2"></i>
+                    Video Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="downloadVideoDetailsContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading video details...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Video Preview Modal -->
+<div class="modal fade" id="videoPreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Video Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" id="videoPreviewContent">
+                <!-- Video content will be inserted here -->
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Help Modal -->
 <div class="modal fade" id="helpModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -331,9 +369,17 @@
  * Handles download functionality and recent downloads display
  */
 
+// Global variables for modal instances
+let downloadVideoDetailsModalInstance = null;
+let videoPreviewModalInstance = null;
+let bulkProgressModalInstance = null;
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize download functionality
     window.downloadManager = new TikTokDownloadManager();
+    
+    // Initialize modal instances
+    initializeModals();
     
     // Check API configuration status
     window.downloadManager.checkApiStatus();
@@ -350,12 +396,48 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Initialize Bootstrap modals
+function initializeModals() {
+    try {
+        // Initialize video details modal
+        const downloadVideoDetailsModal = document.getElementById('downloadVideoDetailsModal');
+        if (downloadVideoDetailsModal) {
+            downloadVideoDetailsModalInstance = new bootstrap.Modal(downloadVideoDetailsModal, {
+                backdrop: true,
+                keyboard: true
+            });
+        }
+        
+        // Initialize video preview modal
+        const videoPreviewModal = document.getElementById('videoPreviewModal');
+        if (videoPreviewModal) {
+            videoPreviewModalInstance = new bootstrap.Modal(videoPreviewModal, {
+                backdrop: true,
+                keyboard: true
+            });
+        }
+        
+        // Initialize bulk progress modal
+        const bulkProgressModal = document.getElementById('bulkProgressModal');
+        if (bulkProgressModal) {
+            bulkProgressModalInstance = new bootstrap.Modal(bulkProgressModal, {
+                backdrop: 'static',
+                keyboard: false
+            });
+        }
+        
+        console.log('Modals initialized successfully');
+    } catch (error) {
+        console.error('Error initializing modals:', error);
+    }
+}
+
 class TikTokDownloadManager {
     constructor() {
         this.currentBatchId = null;
         this.progressInterval = null;
-        this.apiConfigured = true; // Will be checked on init
-        this.selectedFile = null; // For manual file selection fallback
+        this.apiConfigured = true;
+        this.selectedFile = null;
         this.initializeEventListeners();
     }
 
@@ -371,7 +453,6 @@ class TikTokDownloadManager {
             }
         } catch (error) {
             console.warn('Could not check API status:', error);
-            // Don't show warning if we can't determine status
         }
     }
 
@@ -416,7 +497,6 @@ class TikTokDownloadManager {
         if (uploadArea && fileInput) {
             // Click to upload
             uploadArea.addEventListener('click', (e) => {
-                // Don't trigger if clicking on remove button
                 if (!e.target.closest('.btn-outline-danger')) {
                     fileInput.click();
                 }
@@ -438,14 +518,12 @@ class TikTokDownloadManager {
                 
                 const files = e.dataTransfer.files;
                 if (files.length > 0) {
-                    // Create a new FileList-like object
                     try {
                         const dt = new DataTransfer();
                         dt.items.add(files[0]);
                         fileInput.files = dt.files;
                         this.handleFileSelection();
                     } catch (error) {
-                        // Fallback for browsers that don't support DataTransfer
                         console.log('DataTransfer not supported, using manual file handling');
                         this.handleManualFileSelection(files[0]);
                     }
@@ -456,11 +534,6 @@ class TikTokDownloadManager {
             fileInput.addEventListener('change', (e) => {
                 console.log('File input changed, files:', e.target.files?.length || 0);
                 this.handleFileSelection();
-            });
-        } else {
-            console.error('Upload area elements not found:', {
-                uploadArea: !!uploadArea,
-                fileInput: !!fileInput
             });
         }
 
@@ -511,7 +584,6 @@ class TikTokDownloadManager {
                     timer: 3000
                 });
             } else if (error.response?.data?.errors) {
-                // Handle validation errors
                 error.response.data.errors.forEach(err => {
                     const field = document.querySelector(`[name="${err.param}"]`);
                     if (field) {
@@ -536,26 +608,21 @@ class TikTokDownloadManager {
         }
     }
 
-    // Handle manual file selection (fallback for drag & drop)
     handleManualFileSelection(file) {
         if (!file) return;
         
-        // Validate file type
         if (!file.name.toLowerCase().endsWith('.csv')) {
             Utils.showToast('Please select a CSV file', 'error');
             return;
         }
         
-        // Validate file size (10MB limit)
         if (file.size > 10 * 1024 * 1024) {
             Utils.showToast('File size must be less than 10MB', 'error');
             return;
         }
         
-        // Store file reference for upload
         this.selectedFile = file;
         
-        // Update UI
         const uploadArea = document.getElementById('uploadArea');
         const uploadBtn = document.getElementById('uploadBulkBtn');
         
@@ -565,11 +632,16 @@ class TikTokDownloadManager {
                     <i class="fas fa-file-csv fa-3x text-success mb-3"></i>
                     <p class="mb-2"><strong>${file.name}</strong></p>
                     <p class="small text-muted mb-0">${this.formatFileSize(file.size)}</p>
-                    <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="window.downloadManager.clearSelectedFile()">
+                    <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="clearFileBtn">
                         <i class="fas fa-times me-1"></i>Remove
                     </button>
                 </div>
             `;
+            
+            document.getElementById('clearFileBtn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.clearSelectedFile();
+            });
         }
         
         if (uploadBtn) {
@@ -582,35 +654,14 @@ class TikTokDownloadManager {
         const uploadBtn = document.getElementById('uploadBulkBtn');
         const uploadArea = document.getElementById('uploadArea');
         
-        // Debug logging
-        console.log('handleFileSelection called');
-        console.log('Elements found:', {
-            fileInput: !!fileInput,
-            uploadBtn: !!uploadBtn,
-            uploadArea: !!uploadArea
-        });
-        
-        // Check if elements exist
-        if (!fileInput) {
-            console.error('File input element not found');
-            return;
-        }
-        
-        if (!uploadBtn) {
-            console.error('Upload button element not found');
-            return;
-        }
-        
-        if (!uploadArea) {
-            console.error('Upload area element not found');
+        if (!fileInput || !uploadBtn || !uploadArea) {
+            console.error('Required elements not found');
             return;
         }
         
         if (fileInput.files && fileInput.files.length > 0) {
             const file = fileInput.files[0];
-            console.log('File selected:', file.name, file.size);
             
-            // Validate file type
             if (!file.name.toLowerCase().endsWith('.csv')) {
                 Utils.showToast('Please select a CSV file', 'error');
                 fileInput.value = '';
@@ -618,7 +669,6 @@ class TikTokDownloadManager {
                 return;
             }
             
-            // Validate file size (10MB limit)
             if (file.size > 10 * 1024 * 1024) {
                 Utils.showToast('File size must be less than 10MB', 'error');
                 fileInput.value = '';
@@ -626,27 +676,29 @@ class TikTokDownloadManager {
                 return;
             }
             
-            // Update UI to show selected file
             uploadArea.innerHTML = `
                 <div class="upload-content">
                     <i class="fas fa-file-csv fa-3x text-success mb-3"></i>
                     <p class="mb-2"><strong>${file.name}</strong></p>
                     <p class="small text-muted mb-0">${this.formatFileSize(file.size)}</p>
-                    <button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="window.downloadManager.clearSelectedFile()">
+                    <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="clearFileBtn">
                         <i class="fas fa-times me-1"></i>Remove
                     </button>
                 </div>
             `;
             
+            document.getElementById('clearFileBtn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.clearSelectedFile();
+            });
+            
             uploadBtn.disabled = false;
         } else {
-            console.log('No files selected');
             this.resetUploadArea();
             uploadBtn.disabled = true;
         }
     }
 
-    // Reset upload area to initial state
     resetUploadArea() {
         const uploadArea = document.getElementById('uploadArea');
         const uploadBtn = document.getElementById('uploadBulkBtn');
@@ -670,7 +722,6 @@ class TikTokDownloadManager {
         }
     }
 
-    // Clear selected file
     clearSelectedFile() {
         const fileInput = document.getElementById('bulkFile');
         if (fileInput) {
@@ -690,7 +741,7 @@ class TikTokDownloadManager {
 
     createVideoCard(video) {
         return `
-            <div class="col-md-6 col-lg-4 mb-3">
+            <div class="col-12">
                 <div class="card video-card h-100">
                     <div class="position-relative">
                         <img src="${video.thumbnail}" class="card-img-top video-thumbnail" alt="Video thumbnail">
@@ -704,7 +755,7 @@ class TikTokDownloadManager {
                             ${video.title}
                         </h6>
                         <div class="d-flex align-items-center mb-2">
-                            <img src="${video.author.avatar}" class="rounded-circle me-2" width="24" height="24" alt="Author">
+                            <img src="${video.author.avatar || 'https://via.placeholder.com/24x24/6366f1/ffffff?text=A'}" class="rounded-circle me-2" width="24" height="24" alt="Author">
                             <small class="text-muted">${video.author.name}</small>
                         </div>
                         <div class="video-stats mb-3">
@@ -735,53 +786,105 @@ class TikTokDownloadManager {
         `;
     }
 
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Bulk upload implementation
+    async handleBulkUpload() {
+        console.log('Bulk upload functionality - implement as needed');
+    }
+
     // Load recent downloads with clickable functionality
     async loadRecentDownloads() {
-        const container = document.getElementById('recentDownloads');
+    const container = document.getElementById('recentDownloads');
+    
+    try {
+        console.log('=== DEBUG: Loading recent downloads ===');
         
-        try {
-            // Show loading state
-            container.innerHTML = `
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-2 text-muted">Loading recent downloads...</p>
+        // Show loading state
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
                 </div>
-            `;
+                <p class="mt-2 text-muted">Loading recent downloads...</p>
+            </div>
+        `;
+        
+        // Check if HttpClient exists
+        if (typeof HttpClient === 'undefined') {
+            console.error('HttpClient is not defined');
+            throw new Error('HttpClient is not defined');
+        }
+        
+        console.log('Making API request to: /api/download/history?limit=6');
+        const response = await HttpClient.get('/api/download/history?limit=6');
+        console.log('=== API Response ===');
+        console.log('Full response:', response);
+        console.log('Success:', response.success);
+        console.log('Data:', response.data);
+        
+        if (response.data && response.data.history) {
+            console.log('History length:', response.data.history.length);
+            console.log('First item:', response.data.history[0]);
+        }
+        
+        if (response.success && response.data && response.data.history && response.data.history.length > 0) {
+            console.log('Processing', response.data.history.length, 'download items');
             
-            const response = await axios.get('/api/download/history?limit=6');
-            
-            if (response.data.success && response.data.data.history.length > 0) {
-                const historyHtml = response.data.data.history.map(item => `
+            const historyHtml = response.data.history.map((item, index) => {
+                console.log(`Processing item ${index}:`, item);
+                
+                // Pastikan semua properti ada
+                const videoId = item.video?.id || item.id;
+                const videoTitle = item.video?.title || 'Untitled Video';
+                const thumbnail = item.video?.thumbnail || item.video?.cover_url || 'https://via.placeholder.com/70x70/6366f1/ffffff?text=Video';
+                const author = item.video?.author || item.video?.author_name || 'Unknown Author';
+                const duration = item.video?.duration || '00:00';
+                const status = item.status || 'completed';
+                const downloadedAt = item.downloadedAt || item.downloaded_at || new Date().toISOString();
+                
+                console.log(`Item ${index} data:`, {
+                    videoId, videoTitle, thumbnail, author, duration, status, downloadedAt
+                });
+                
+                return `
                     <div class="col-md-6 col-lg-4 mb-3">
                         <div class="card h-100 recent-download-card shadow-hover" 
                              style="cursor: pointer;" 
-                             onclick="showDownloadVideoDetails(${item.video.id}, '${item.video.title.replace(/'/g, "\\'")}')">
+                             data-video-id="${videoId}"
+                             data-video-title="${videoTitle.replace(/"/g, '&quot;')}"
+                             onclick="showDownloadVideoDetails(${videoId}, '${videoTitle.replace(/'/g, "\\'")}')">
                             <div class="card-body p-3">
                                 <div class="d-flex align-items-start">
                                     <div class="position-relative me-3">
-                                        <img src="${item.video.thumbnail}" 
+                                        <img src="${thumbnail}" 
                                              class="rounded" 
                                              width="70" 
                                              height="70" 
                                              alt="Thumbnail"
-                                             style="object-fit: cover">
-                                        <div class="video-duration-badge">${item.video.duration}</div>
+                                             style="object-fit: cover"
+                                             onerror="this.src='https://via.placeholder.com/70x70/6366f1/ffffff?text=Video'">
+                                        <div class="video-duration-badge">${duration}</div>
                                         <div class="video-play-overlay">
                                             <i class="fas fa-play"></i>
                                         </div>
                                     </div>
                                     <div class="flex-grow-1">
-                                        <h6 class="card-title mb-1 text-truncate" title="${item.video.title}">
-                                            ${item.video.title.length > 45 ? item.video.title.substring(0, 45) + '...' : item.video.title}
+                                        <h6 class="card-title mb-1 text-truncate" title="${videoTitle}">
+                                            ${videoTitle.length > 45 ? videoTitle.substring(0, 45) + '...' : videoTitle}
                                         </h6>
                                         <p class="card-text small text-muted mb-2">
-                                            <i class="fas fa-user me-1"></i>by ${item.video.author} • ${item.video.duration}
+                                            <i class="fas fa-user me-1"></i>by ${author} • ${duration}
                                         </p>
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <div class="video-stats">
-                                                ${Object.entries(item.video.stats || {}).map(([key, value]) => {
+                                                ${item.video?.stats ? Object.entries(item.video.stats).map(([key, value]) => {
                                                     const iconMap = {
                                                         play_count: 'fa-play',
                                                         digg_count: 'fa-heart',
@@ -795,24 +898,24 @@ class TikTokDownloadManager {
                                                         </span>`;
                                                     }
                                                     return '';
-                                                }).slice(0, 2).join('')}
+                                                }).slice(0, 2).join('') : ''}
                                             </div>
-                                            <span class="badge bg-${item.status === 'completed' ? 'success' : 'warning'}">
-                                                ${item.status}
+                                            <span class="badge bg-${status === 'completed' ? 'success' : 'warning'}">
+                                                ${status}
                                             </span>
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center">
                                             <small class="text-muted">
-                                                <i class="fas fa-clock me-1"></i>${new Date(item.downloadedAt).toLocaleDateString()}
+                                                <i class="fas fa-clock me-1"></i>${new Date(downloadedAt).toLocaleDateString()}
                                             </small>
                                             <div class="btn-group btn-group-sm">
                                                 <button class="btn btn-outline-primary btn-sm" 
-                                                        onclick="event.stopPropagation(); downloadVideoFromHistory(${item.video.id}, 'hd')" 
+                                                        onclick="event.stopPropagation(); downloadVideoFromHistory(${videoId}, 'hd')" 
                                                         title="Download HD">
                                                     <i class="fas fa-download"></i>
                                                 </button>
                                                 <button class="btn btn-outline-secondary btn-sm" 
-                                                        onclick="event.stopPropagation(); showDownloadVideoDetails(${item.video.id}, '${item.video.title.replace(/'/g, "\\'")}');" 
+                                                        onclick="event.stopPropagation(); showDownloadVideoDetails(${videoId}, '${videoTitle.replace(/'/g, "\\'")}');" 
                                                         title="View Details">
                                                     <i class="fas fa-info-circle"></i>
                                                 </button>
@@ -823,86 +926,116 @@ class TikTokDownloadManager {
                             </div>
                         </div>
                     </div>
-                `).join('');
-                
-                container.innerHTML = `<div class="row">${historyHtml}</div>`;
-            } else {
-                container.innerHTML = `
-                    <div class="text-center py-4">
-                        <i class="fas fa-history fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">No recent downloads found</p>
-                        <p class="small text-muted">Download some videos to see them here</p>
-                    </div>
                 `;
-            }
+            }).join('');
             
-        } catch (error) {
-            console.error('Load recent downloads error:', error);
+            container.innerHTML = `<div class="row">${historyHtml}</div>`;
+            console.log('Recent downloads HTML rendered successfully');
+        } else {
+            console.log('No recent downloads found or response structure unexpected');
+            console.log('Response structure check:', {
+                hasSuccess: !!response.success,
+                hasData: !!response.data,
+                hasHistory: !!(response.data && response.data.history),
+                historyLength: response.data && response.data.history ? response.data.history.length : 'N/A'
+            });
+            
             container.innerHTML = `
                 <div class="text-center py-4">
-                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-                    <p class="text-muted">Failed to load recent downloads</p>
+                    <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No recent downloads found</p>
+                    <p class="small text-muted">Download some videos to see them here</p>
+                    <div class="mt-3">
+                        <button class="btn btn-sm btn-outline-info" onclick="console.log('Debug info:', ${JSON.stringify(response)})">
+                            Show Debug Info
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('=== ERROR: Load recent downloads ===');
+        console.error('Error object:', error);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        
+        if (error.response) {
+            console.error('Response status:', error.response.status);
+            console.error('Response data:', error.response.data);
+        }
+        
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                <p class="text-muted">Failed to load recent downloads</p>
+                <p class="small text-danger">Error: ${error.message}</p>
+                <div class="mt-3">
                     <button class="btn btn-outline-primary btn-sm" onclick="window.downloadManager.loadRecentDownloads()">
+                        <i class="fas fa-retry me-1"></i>Try Again
+                    </button>
+                    <button class="btn btn-outline-info btn-sm ms-2" onclick="console.log('Error details:', ${JSON.stringify(error.message)})">
+                        Show Error Details
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+} // End of TikTokDownloadManager class
+
+// Global functions for download page
+window.showDownloadVideoDetails = async function(videoId, title) {
+    try {
+        console.log('Showing video details for:', videoId, title);
+        
+        if (!downloadVideoDetailsModalInstance) {
+            console.error('Modal instance not initialized');
+            Utils.showToast('Modal not available', 'error');
+            return;
+        }
+
+        const modalContent = document.getElementById('downloadVideoDetailsContent');
+        
+        // Show loading state
+        if (modalContent) {
+            modalContent.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading video details...</p>
+                </div>
+            `;
+        }
+        
+        // Show modal
+        downloadVideoDetailsModalInstance.show();
+        
+        const response = await HttpClient.get(`/dashboard/api/video/${videoId}`);
+        console.log('Video details response:', response);
+        
+        if (response.success && modalContent) {
+            const video = response.data;
+            modalContent.innerHTML = createDownloadVideoDetailsHTML(video);
+        } else {
+            throw new Error(response.message || 'Failed to load video details');
+        }
+    } catch (error) {
+        console.error('Failed to load video details:', error);
+        const modalContent = document.getElementById('downloadVideoDetailsContent');
+        if (modalContent) {
+            modalContent.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h6>Failed to Load Details</h6>
+                    <p class="text-muted">${error.message || 'Unable to load video details'}</p>
+                    <button class="btn btn-outline-secondary" onclick="showDownloadVideoDetails(${videoId}, '${title.replace(/'/g, "\\'")}')">
                         <i class="fas fa-retry me-1"></i>Try Again
                     </button>
                 </div>
             `;
         }
-    }
-
-    formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    // Bulk upload and other methods...
-    async handleBulkUpload() {
-        // Implementation for bulk upload...
-        console.log('Bulk upload functionality - implement as needed');
-    }
-}
-
-// Global functions for download page
-window.showDownloadVideoDetails = async function(videoId, title) {
-    const modal = new bootstrap.Modal(document.getElementById('downloadVideoDetailsModal'));
-    const modalContent = document.getElementById('downloadVideoDetailsContent');
-    
-    // Show loading state
-    modalContent.innerHTML = `
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2 text-muted">Loading video details...</p>
-        </div>
-    `;
-    
-    modal.show();
-    
-    try {
-        const response = await HttpClient.get(`/dashboard/api/video/${videoId}`);
-        
-        if (response.success) {
-            const video = response.data;
-            modalContent.innerHTML = createDownloadVideoDetailsHTML(video);
-        } else {
-            throw new Error(response.message);
-        }
-    } catch (error) {
-        console.error('Failed to load video details:', error);
-        modalContent.innerHTML = `
-            <div class="text-center py-4">
-                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-                <h6>Failed to Load Details</h6>
-                <p class="text-muted">${error.message || 'Unable to load video details'}</p>
-                <button class="btn btn-outline-secondary" onclick="showDownloadVideoDetails(${videoId}, '${title}')">
-                    <i class="fas fa-retry me-1"></i>Try Again
-                </button>
-            </div>
-        `;
     }
 };
 
@@ -983,14 +1116,14 @@ function createDownloadVideoDetailsHTML(video) {
                         <div class="col-6">
                             <small class="text-muted">Type</small>
                             <div class="fw-bold">
-                                <span class="badge bg-${video.downloadInfo.type === 'bulk' ? 'info' : 'primary'}">
-                                    ${video.downloadInfo.type}
+                                <span class="badge bg-${video.downloadInfo && video.downloadInfo.type === 'bulk' ? 'info' : 'primary'}">
+                                    ${video.downloadInfo ? video.downloadInfo.type : 'single'}
                                 </span>
                             </div>
                         </div>
                         <div class="col-6">
                             <small class="text-muted">Downloaded</small>
-                            <div class="fw-bold small">${new Date(video.downloadInfo.downloadedAt).toLocaleString()}</div>
+                            <div class="fw-bold small">${video.downloadInfo ? new Date(video.downloadInfo.downloadedAt).toLocaleString() : 'N/A'}</div>
                         </div>
                     </div>
                 </div>
@@ -1013,42 +1146,37 @@ function createDownloadVideoDetailsHTML(video) {
 
 // Play video preview for download page
 function playDownloadVideoPreview(videoUrl) {
-    const videoModal = `
-        <div class="modal fade" id="downloadVideoPreviewModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Video Preview</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body p-0">
-                        <video controls class="w-100" autoplay>
-                            <source src="${videoUrl}" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Remove existing modal
-    const existingModal = document.getElementById('downloadVideoPreviewModal');
-    if (existingModal) {
-        existingModal.remove();
+    try {
+        if (!videoPreviewModalInstance) {
+            console.error('Video preview modal not initialized');
+            Utils.showToast('Preview not available', 'error');
+            return;
+        }
+
+        const videoContent = document.getElementById('videoPreviewContent');
+        if (videoContent) {
+            videoContent.innerHTML = `
+                <video controls class="w-100" autoplay>
+                    <source src="${videoUrl}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            `;
+        }
+        
+        videoPreviewModalInstance.show();
+        
+        // Clean up when modal is hidden
+        document.getElementById('videoPreviewModal').addEventListener('hidden.bs.modal', function() {
+            const videoContent = document.getElementById('videoPreviewContent');
+            if (videoContent) {
+                videoContent.innerHTML = '';
+            }
+        }, { once: true });
+        
+    } catch (error) {
+        console.error('Error showing video preview:', error);
+        Utils.showToast('Unable to show video preview', 'error');
     }
-    
-    // Add new modal
-    document.body.insertAdjacentHTML('beforeend', videoModal);
-    
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('downloadVideoPreviewModal'));
-    modal.show();
-    
-    // Clean up when modal is hidden
-    document.getElementById('downloadVideoPreviewModal').addEventListener('hidden.bs.modal', function() {
-        this.remove();
-    });
 }
 
 // Copy video URL to clipboard
@@ -1089,41 +1217,36 @@ async function downloadVideoFromHistory(videoId, quality) {
 
 // Global function for video player (from single downloads)
 function playVideo(url) {
-    const videoModal = `
-        <div class="modal fade" id="videoModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Video Preview</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body p-0">
-                        <video controls class="w-100" autoplay>
-                            <source src="${url}" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Remove existing modal
-    const existingModal = document.getElementById('videoModal');
-    if (existingModal) {
-        existingModal.remove();
+    try {
+        if (!videoPreviewModalInstance) {
+            console.error('Video preview modal not initialized');
+            Utils.showToast('Preview not available', 'error');
+            return;
+        }
+
+        const videoContent = document.getElementById('videoPreviewContent');
+        if (videoContent) {
+            videoContent.innerHTML = `
+                <video controls class="w-100" autoplay>
+                    <source src="${url}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            `;
+        }
+        
+        videoPreviewModalInstance.show();
+        
+        // Clean up when modal is hidden
+        document.getElementById('videoPreviewModal').addEventListener('hidden.bs.modal', function() {
+            const videoContent = document.getElementById('videoPreviewContent');
+            if (videoContent) {
+                videoContent.innerHTML = '';
+            }
+        }, { once: true });
+        
+    } catch (error) {
+        console.error('Error showing video:', error);
+        Utils.showToast('Unable to show video', 'error');
     }
-    
-    // Add new modal
-    document.body.insertAdjacentHTML('beforeend', videoModal);
-    
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('videoModal'));
-    modal.show();
-    
-    // Clean up when modal is hidden
-    document.getElementById('videoModal').addEventListener('hidden.bs.modal', function() {
-        this.remove();
-    });
 }
 </script>

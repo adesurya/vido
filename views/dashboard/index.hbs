@@ -538,14 +538,51 @@
 }
 </style>
 
+let videoDetailsModalInstance = null;
+let videoPreviewModalInstance = null;
+let popularVideoModalInstance = null;
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize modal instances
+    initializeDashboardModals();
+    
     // Initialize dashboard
     loadDashboardStats();
     
     // Auto-refresh stats every 30 seconds
     setInterval(loadDashboardStats, 30000);
 });
+
+// Initialize Bootstrap modals
+function initializeDashboardModals() {
+    try {
+        // Initialize video details modal
+        const videoDetailsModal = document.getElementById('videoDetailsModal');
+        if (videoDetailsModal) {
+            videoDetailsModalInstance = new bootstrap.Modal(videoDetailsModal, {
+                backdrop: true,
+                keyboard: true
+            });
+        }
+        
+        // Initialize video preview modal (created dynamically)
+        // Will be initialized when needed
+        
+        // Initialize popular video modal
+        const popularVideoModal = document.getElementById('popularVideoModal');
+        if (popularVideoModal) {
+            popularVideoModalInstance = new bootstrap.Modal(popularVideoModal, {
+                backdrop: true,
+                keyboard: true
+            });
+        }
+        
+        console.log('Dashboard modals initialized successfully');
+    } catch (error) {
+        console.error('Error initializing dashboard modals:', error);
+    }
+}
 
 async function loadDashboardStats() {
     try {
@@ -576,44 +613,54 @@ function updateStatsDisplay(stats) {
     });
 }
 
-// Show video details modal
+// Show video details modal - FIXED VERSION
 async function showVideoDetails(videoId, title) {
-    const modal = new bootstrap.Modal(document.getElementById('videoDetailsModal'));
-    const modalContent = document.getElementById('videoDetailsContent');
-    
-    // Show loading state
-    modalContent.innerHTML = `
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2 text-muted">Loading video details...</p>
-        </div>
-    `;
-    
-    modal.show();
-    
     try {
+        if (!videoDetailsModalInstance) {
+            console.error('Video details modal not initialized');
+            Utils.showToast('Modal not available', 'error');
+            return;
+        }
+
+        const modalContent = document.getElementById('videoDetailsContent');
+        
+        // Show loading state
+        if (modalContent) {
+            modalContent.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading video details...</p>
+                </div>
+            `;
+        }
+        
+        videoDetailsModalInstance.show();
+        
         const response = await HttpClient.get(`/dashboard/api/video/${videoId}`);
         
-        if (response.success) {
+        if (response.success && modalContent) {
             const video = response.data;
             modalContent.innerHTML = createVideoDetailsHTML(video);
         } else {
-            throw new Error(response.message);
+            throw new Error(response.message || 'Failed to load video details');
         }
     } catch (error) {
         console.error('Failed to load video details:', error);
-        modalContent.innerHTML = `
-            <div class="text-center py-4">
-                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-                <h6>Failed to Load Details</h6>
-                <p class="text-muted">${error.message || 'Unable to load video details'}</p>
-                <button class="btn btn-outline-secondary" onclick="showVideoDetails(${videoId}, '${title}')">
-                    <i class="fas fa-retry me-1"></i>Try Again
-                </button>
-            </div>
-        `;
+        const modalContent = document.getElementById('videoDetailsContent');
+        if (modalContent) {
+            modalContent.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h6>Failed to Load Details</h6>
+                    <p class="text-muted">${error.message || 'Unable to load video details'}</p>
+                    <button class="btn btn-outline-secondary" onclick="showVideoDetails(${videoId}, '${title.replace(/'/g, "\\'")}')">
+                        <i class="fas fa-retry me-1"></i>Try Again
+                    </button>
+                </div>
+            `;
+        }
     }
 }
 
@@ -635,7 +682,7 @@ function createVideoDetailsHTML(video) {
                 
                 <div class="mb-3">
                     <div class="d-flex align-items-center mb-2">
-                        <img src="${video.author.avatar}" class="rounded-circle me-2" width="32" height="32" alt="Author">
+                        <img src="${video.author.avatar || 'https://via.placeholder.com/32x32/6366f1/ffffff?text=A'}" class="rounded-circle me-2" width="32" height="32" alt="Author">
                         <div>
                             <div class="fw-bold">${video.author.name}</div>
                             <small class="text-muted">Author</small>
@@ -703,10 +750,18 @@ function createVideoDetailsHTML(video) {
     `;
 }
 
-// Play video preview
+// Play video preview - FIXED VERSION
 function playVideoPreview(videoUrl) {
+    const modalId = 'videoPreviewModal';
+    
+    // Remove existing modal if it exists
+    const existingModal = document.getElementById(modalId);
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
     const videoModal = `
-        <div class="modal fade" id="videoPreviewModal" tabindex="-1">
+        <div class="modal fade" id="${modalId}" tabindex="-1">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -724,32 +779,40 @@ function playVideoPreview(videoUrl) {
         </div>
     `;
     
-    // Remove existing modal
-    const existingModal = document.getElementById('videoPreviewModal');
-    if (existingModal) {
-        existingModal.remove();
+    try {
+        // Add new modal
+        document.body.insertAdjacentHTML('beforeend', videoModal);
+        
+        // Initialize and show modal
+        const modal = document.getElementById(modalId);
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+        
+        // Clean up when modal is hidden
+        modal.addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    } catch (error) {
+        console.error('Error creating video preview modal:', error);
+        Utils.showToast('Unable to show video preview', 'error');
     }
-    
-    // Add new modal
-    document.body.insertAdjacentHTML('beforeend', videoModal);
-    
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('videoPreviewModal'));
-    modal.show();
-    
-    // Clean up when modal is hidden
-    document.getElementById('videoPreviewModal').addEventListener('hidden.bs.modal', function() {
-        this.remove();
-    });
 }
 
 // Show popular video info
 function showPopularVideoInfo(videoId, title) {
-    const modal = new bootstrap.Modal(document.getElementById('popularVideoModal'));
-    modal.show();
+    try {
+        if (popularVideoModalInstance) {
+            popularVideoModalInstance.show();
+        } else {
+            Utils.showToast('Popular video modal not available', 'info');
+        }
+    } catch (error) {
+        console.error('Error showing popular video info:', error);
+        Utils.showToast('Unable to show video info', 'error');
+    }
 }
 
-// Refresh recent downloads
+// Refresh recent downloads - IMPROVED VERSION
 async function refreshRecentDownloads() {
     const container = document.getElementById('recentDownloadsContainer');
     const emptyState = document.getElementById('emptyRecentDownloads');
@@ -775,7 +838,7 @@ async function refreshRecentDownloads() {
                 <div class="col-md-6 mb-3">
                     <div class="card recent-download-card shadow-hover" 
                          style="cursor: pointer;" 
-                         onclick="showVideoDetails(${activity.video_id}, '${activity.title}')">
+                         onclick="showVideoDetails(${activity.video_id}, '${activity.title.replace(/'/g, "\\'")}')">
                         <div class="card-body p-3">
                             <div class="d-flex align-items-start">
                                 <div class="position-relative me-3">
@@ -815,7 +878,7 @@ async function refreshRecentDownloads() {
                                                 <i class="fas fa-download"></i>
                                             </a>
                                             <button class="btn btn-outline-secondary btn-sm" 
-                                                    onclick="event.stopPropagation(); showVideoDetails(${activity.video_id}, '${activity.title}')" 
+                                                    onclick="event.stopPropagation(); showVideoDetails(${activity.video_id}, '${activity.title.replace(/'/g, "\\'")}');" 
                                                     title="View Details">
                                                 <i class="fas fa-info-circle"></i>
                                             </button>

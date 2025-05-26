@@ -287,78 +287,287 @@ https://www.tiktok.com/@username/video/9876543210987654321,Another Video Title,A
 
     // Get user's download history
     async getDownloadHistory(req, res) {
-        try {
-            const userId = req.session.userId;
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 20;
-            const offset = (page - 1) * limit;
+    try {
+        const userId = req.session.userId;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const offset = (page - 1) * limit;
 
-            const { executeQuery, getOne } = require('../config/database');
+        console.log(`Getting download history for user ${userId}, limit: ${limit}`);
 
-            // Get total count
-            const totalResult = await getOne(
-                'SELECT COUNT(*) as total FROM download_history WHERE user_id = ?',
-                [userId]
-            );
-            const total = totalResult?.total || 0;
+        const { executeQuery, getOne } = require('../config/database');
 
-            // Get download history
-            const history = await executeQuery(`
-                SELECT 
-                    dh.*,
-                    v.title, v.cover_url, v.author_name, v.duration,
-                    v.play_count, v.digg_count, v.comment_count, v.share_count, v.download_count
-                FROM download_history dh
-                JOIN videos v ON dh.video_id = v.id
-                WHERE dh.user_id = ?
-                ORDER BY dh.downloaded_at DESC
-                LIMIT ? OFFSET ?
-            `, [userId, limit, offset]);
+        // Get total count
+        const totalResult = await getOne(
+            'SELECT COUNT(*) as count FROM download_history WHERE user_id = ?',
+            [userId]
+        );
+        const total = totalResult?.count || 0;
+        console.log(`Total downloads for user ${userId}: ${total}`);
 
-            const formattedHistory = history.map(row => ({
-                id: row.id,
-                video: {
-                    id: row.video_id,
-                    title: row.title,
-                    thumbnail: row.cover_url,
-                    author: row.author_name,
-                    duration: Math.floor(row.duration / 60) + ':' + (row.duration % 60).toString().padStart(2, '0'),
-                    stats: {
-                        play_count: Video.formatCount(row.play_count),
-                        digg_count: Video.formatCount(row.digg_count),
-                        comment_count: Video.formatCount(row.comment_count),
-                        share_count: Video.formatCount(row.share_count),
-                        download_count: Video.formatCount(row.download_count)
-                    }
-                },
-                downloadType: row.download_type,
-                batchId: row.batch_id,
-                status: row.status,
-                downloadedAt: row.downloaded_at
-            }));
+        // Get download history with proper JOIN
+        const history = await executeQuery(`
+            SELECT 
+                dh.id,
+                dh.user_id,
+                dh.video_id,
+                dh.download_type,
+                dh.batch_id,
+                dh.status,
+                dh.downloaded_at,
+                v.title,
+                v.cover_url,
+                v.author_name,
+                v.duration,
+                v.play_count,
+                v.digg_count,
+                v.comment_count,
+                v.share_count,
+                v.download_count,
+                v.video_url,
+                v.watermark_video_url
+            FROM download_history dh
+            INNER JOIN videos v ON dh.video_id = v.id
+            WHERE dh.user_id = ?
+            ORDER BY dh.downloaded_at DESC
+            LIMIT ? OFFSET ?
+        `, [userId, limit, offset]);
 
-            res.json({
-                success: true,
-                data: {
-                    history: formattedHistory,
-                    pagination: {
-                        page: page,
-                        limit: limit,
-                        total: total,
-                        pages: Math.ceil(total / limit)
-                    }
-                }
-            });
+        console.log(`Found ${history.length} download records`);
 
-        } catch (error) {
-            console.error('Get download history error:', error.message);
+        // Helper function to format duration
+        const formatDuration = (seconds) => {
+            if (!seconds || seconds === 0) return '00:00';
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        };
+
+        // Helper function to format count
+        const formatCount = (count) => {
+            if (!count || count === 0) return '0';
             
-            res.status(500).json({
+            if (count >= 1000000000) {
+                return (count / 1000000000).toFixed(1) + 'B';
+            }
+            if (count >= 1000000) {
+                return (count / 1000000).toFixed(1) + 'M';
+            }
+            if (count >= 1000) {
+                return (count / 1000).toFixed(1) + 'K';
+            }
+            return count.toString();
+        };
+
+        // Format response data
+        const formattedHistory = history.map(row => {
+            try {
+                return {
+                    id: row.id,
+                    video: {
+                        id: row.video_id,
+                        title: row.title || 'Untitled Video',
+                        thumbnail: row.cover_url || 'https://via.placeholder.com/70x70/6366f1/ffffff?text=Video',
+                        author: row.author_name || 'Unknown Author',
+                        duration: formatDuration(row.duration || 0),
+                        stats: {
+                            play_count: formatCount(row.play_count || 0),
+                            digg_count: formatCount(row.digg_count || 0),
+                            comment_count: formatCount(row.comment_count || 0),
+                            share_count: formatCount(row.share_count || 0),
+                            download_count: formatCount(row.download_count || 0)
+                        }
+                    },
+                    downloadType: row.download_type,
+                    batchId: row.batch_id,
+                    status: row.status,
+                    downloadedAt: row.downloaded_at
+                };
+            } catch (formatError) {
+                console.error('Error formatting row:', formatError, 'Row data:', row);
+                // Return safe fallback
+                return {
+                    id: row.id || 0,
+                    video: {
+                        id: row.video_id || 0,
+                        title: 'Error Loading Video',
+                        thumbnail: 'https://via.placeholder.com/70x70/ff0000/ffffff?text=Error',
+                        author: 'Unknown',
+                        duration: '00:00',
+                        stats: {
+                            play_count: '0',
+                            digg_count: '0',
+                            comment_count: '0',
+                            share_count: '0',
+                            download_count: '0'
+                        }
+                    },
+                    downloadType: row.download_type || 'single',
+                    batchId: row.batch_id,
+                    status: row.status || 'unknown',
+                    downloadedAt: row.downloaded_at || new Date().toISOString()
+                };
+            }
+        });
+
+        const response = {
+            success: true,
+            data: {
+                history: formattedHistory,
+                pagination: {
+                    page: page,
+                    limit: limit,
+                    total: total,
+                    pages: Math.ceil(total / limit)
+                }
+            }
+        };
+
+        console.log(`Sending response with ${formattedHistory.length} items`);
+        res.json(response);
+
+    } catch (error) {
+        console.error('Get download history error:', error);
+        console.error('Error stack:', error.stack);
+        
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get download history',
+            error: process.env.NODE_ENV === 'development' ? {
+                message: error.message,
+                stack: error.stack
+            } : undefined
+        });
+    }
+}
+
+// JUGA TAMBAHKAN method getVideoDetails ini jika belum ada:
+async getVideoDetails(req, res) {
+    try {
+        const { id } = req.params;
+        const userId = req.session.userId;
+        
+        console.log(`Getting video details for ID: ${id}, User: ${userId}`);
+        
+        const { getOne } = require('../config/database');
+        
+        const video = await getOne(`
+            SELECT 
+                v.*,
+                dh.download_type,
+                dh.downloaded_at,
+                dh.batch_id,
+                dh.status
+            FROM videos v
+            INNER JOIN download_history dh ON v.id = dh.video_id
+            WHERE v.id = ? AND dh.user_id = ?
+            ORDER BY dh.downloaded_at DESC
+            LIMIT 1
+        `, [id, userId]);
+        
+        if (!video) {
+            return res.status(404).json({
                 success: false,
-                message: 'Failed to get download history'
+                message: 'Video not found or not accessible'
             });
         }
+
+        // Helper functions
+        const formatDuration = (seconds) => {
+            if (!seconds || seconds === 0) return '00:00';
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        };
+
+        const formatCount = (count) => {
+            if (!count || count === 0) return '0';
+            
+            if (count >= 1000000000) {
+                return (count / 1000000000).toFixed(1) + 'B';
+            }
+            if (count >= 1000000) {
+                return (count / 1000000).toFixed(1) + 'M';
+            }
+            if (count >= 1000) {
+                return (count / 1000).toFixed(1) + 'K';
+            }
+            return count.toString();
+        };
+
+        const responseData = {
+            id: video.id,
+            title: video.title || 'Untitled Video',
+            thumbnail: video.cover_url || 'https://via.placeholder.com/300x400/6366f1/ffffff?text=Video',
+            duration: formatDuration(video.duration),
+            author: {
+                id: video.author_id || 'unknown',
+                name: video.author_name || 'Unknown Author',
+                avatar: video.author_avatar || 'https://via.placeholder.com/32x32/6366f1/ffffff?text=A'
+            },
+            music: {
+                id: video.music_id || null,
+                title: video.music_title || null,
+                author: video.music_author || null
+            },
+            stats: {
+                play_count: formatCount(video.play_count || 0),
+                digg_count: formatCount(video.digg_count || 0),
+                comment_count: formatCount(video.comment_count || 0),
+                share_count: formatCount(video.share_count || 0),
+                download_count: formatCount(video.download_count || 0)
+            },
+            downloadUrls: {
+                hd: video.video_url || '#',
+                watermark: video.watermark_video_url || '#'
+            },
+            downloadInfo: {
+                type: video.download_type || 'single',
+                downloadedAt: video.downloaded_at || new Date().toISOString(),
+                batchId: video.batch_id || null,
+                status: video.status || 'completed'
+            },
+            createdAt: video.created_at
+        };
+
+        res.json({
+            success: true,
+            data: responseData
+        });
+
+    } catch (error) {
+        console.error('Get video details error:', error);
+        
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get video details',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
+}
+
+formatDuration(seconds) {
+    if (!seconds || seconds === 0) return '00:00';
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+
+formatCount(count) {
+    if (!count || count === 0) return '0';
+    
+    if (count >= 1000000000) {
+        return (count / 1000000000).toFixed(1) + 'B';
+    }
+    if (count >= 1000000) {
+        return (count / 1000000).toFixed(1) + 'M';
+    }
+    if (count >= 1000) {
+        return (count / 1000).toFixed(1) + 'K';
+    }
+    return count.toString();
+}
 
     // Get video details
     async getVideoDetails(req, res) {

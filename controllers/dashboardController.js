@@ -155,79 +155,116 @@ class DashboardController {
 
     // Get video details for modal
     async getVideoDetails(req, res) {
-        try {
-            const { id } = req.params;
-            const userId = req.session.userId;
-            
-            // Get video with download history
-            const { executeQuery, getOne } = require('../config/database');
-            
-            const video = await getOne(`
-                SELECT 
-                    v.*,
-                    dh.download_type,
-                    dh.downloaded_at,
-                    dh.batch_id
-                FROM videos v
-                INNER JOIN download_history dh ON v.id = dh.video_id
-                WHERE v.id = ? AND dh.user_id = ?
-                ORDER BY dh.downloaded_at DESC
-                LIMIT 1
-            `, [id, userId]);
-            
-            if (!video) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Video not found or not accessible'
-                });
-            }
-
-            res.json({
-                success: true,
-                data: {
-                    id: video.id,
-                    title: video.title,
-                    thumbnail: video.cover_url,
-                    duration: formatDuration(video.duration),
-                    author: {
-                        id: video.author_id,
-                        name: video.author_name,
-                        avatar: video.author_avatar
-                    },
-                    music: {
-                        id: video.music_id,
-                        title: video.music_title,
-                        author: video.music_author
-                    },
-                    stats: {
-                        play_count: Video.formatCount(video.play_count),
-                        digg_count: Video.formatCount(video.digg_count),
-                        comment_count: Video.formatCount(video.comment_count),
-                        share_count: Video.formatCount(video.share_count),
-                        download_count: Video.formatCount(video.download_count)
-                    },
-                    downloadUrls: {
-                        hd: video.video_url,
-                        watermark: video.watermark_video_url
-                    },
-                    downloadInfo: {
-                        type: video.download_type,
-                        downloadedAt: video.downloaded_at,
-                        batchId: video.batch_id
-                    },
-                    createdAt: video.created_at
-                }
-            });
-
-        } catch (error) {
-            console.error('Get video details error:', error.message);
-            
-            res.status(500).json({
+    try {
+        const { id } = req.params;
+        const userId = req.session.userId;
+        
+        console.log(`Dashboard: Getting video details for ID: ${id}, User: ${userId}`);
+        
+        // Get video with download history
+        const { getOne } = require('../config/database');
+        
+        const video = await getOne(`
+            SELECT 
+                v.*,
+                dh.download_type,
+                dh.downloaded_at,
+                dh.batch_id,
+                dh.status
+            FROM videos v
+            INNER JOIN download_history dh ON v.id = dh.video_id
+            WHERE v.id = ? AND dh.user_id = ?
+            ORDER BY dh.downloaded_at DESC
+            LIMIT 1
+        `, [id, userId]);
+        
+        if (!video) {
+            return res.status(404).json({
                 success: false,
-                message: 'Failed to get video details'
+                message: 'Video not found or not accessible'
             });
         }
+
+        // Helper function to format duration
+        function formatDuration(seconds) {
+            if (!seconds || seconds === 0) return '00:00';
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+
+        // Helper function to format count
+        function formatCount(count) {
+            if (!count || count === 0) return '0';
+            
+            if (count >= 1000000000) {
+                return (count / 1000000000).toFixed(1) + 'B';
+            }
+            if (count >= 1000000) {
+                return (count / 1000000).toFixed(1) + 'M';
+            }
+            if (count >= 1000) {
+                return (count / 1000).toFixed(1) + 'K';
+            }
+            return count.toString();
+        }
+
+        const responseData = {
+            id: video.id,
+            title: video.title || 'Untitled Video',
+            thumbnail: video.cover_url || 'https://via.placeholder.com/300x400/6366f1/ffffff?text=Video',
+            duration: formatDuration(video.duration),
+            author: {
+                id: video.author_id || 'unknown',
+                name: video.author_name || 'Unknown Author',
+                avatar: video.author_avatar || 'https://via.placeholder.com/32x32/6366f1/ffffff?text=A'
+            },
+            music: {
+                id: video.music_id || null,
+                title: video.music_title || null,
+                author: video.music_author || null
+            },
+            stats: {
+                play_count: formatCount(video.play_count || 0),
+                digg_count: formatCount(video.digg_count || 0),
+                comment_count: formatCount(video.comment_count || 0),
+                share_count: formatCount(video.share_count || 0),
+                download_count: formatCount(video.download_count || 0)
+            },
+            downloadUrls: {
+                hd: video.video_url || '#',
+                watermark: video.watermark_video_url || '#'
+            },
+            downloadInfo: {
+                type: video.download_type || 'single',
+                downloadedAt: video.downloaded_at || new Date().toISOString(),
+                batchId: video.batch_id || null,
+                status: video.status || 'completed'
+            },
+            createdAt: video.created_at
+        };
+
+        console.log('Dashboard: Sending video details response');
+
+        res.json({
+            success: true,
+            data: responseData
+        });
+
+    } catch (error) {
+        console.error('Dashboard getVideoDetails error:', error.message);
+        console.error('Error stack:', error.stack);
+        
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get video details',
+            error: process.env.NODE_ENV === 'development' ? {
+                message: error.message,
+                stack: error.stack
+            } : undefined
+        });
     }
+}
 
     // Show admin panel
     async showAdmin(req, res) {

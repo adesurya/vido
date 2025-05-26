@@ -33,14 +33,19 @@ app.use(helmet({
         directives: {
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
+            scriptSrcAttr: ["'unsafe-inline'"], // Allow inline event handlers
             imgSrc: ["'self'", "data:", "https:", "http:"],
             fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
-            connectSrc: ["'self'"]
+            connectSrc: ["'self'"],
+            mediaSrc: ["'self'", "https:", "http:", "data:"], // Allow video/audio sources
+            objectSrc: ["'none'"],
+            frameSrc: ["'none'"]
         }
     },
     crossOriginEmbedderPolicy: false
 }));
+
 
 // CORS configuration
 app.use(cors({
