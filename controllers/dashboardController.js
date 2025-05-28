@@ -82,7 +82,7 @@ class DashboardController {
             }
 
             res.render('dashboard/index', {
-                title: 'Dashboard - TikTok Downloader Pro',
+                title: 'Dashboard - HDA Downloader',
                 layout: 'main',
                 stats: userStats,
                 recentDownloads: recentDownloads.map(download => ({
@@ -118,7 +118,7 @@ class DashboardController {
             console.error('Show dashboard error:', error);
             req.flash('error', 'Failed to load dashboard');
             res.render('dashboard/index', {
-                title: 'Dashboard - TikTok Downloader Pro',
+                title: 'Dashboard - HDA Downloader',
                 layout: 'main',
                 stats: { 
                     total_downloads: 0, 
@@ -140,7 +140,7 @@ class DashboardController {
     async showDownload(req, res) {
         try {
             res.render('dashboard/download', {
-                title: 'Download Videos - TikTok Downloader Pro',
+                title: 'Download Videos - HDA Downloader',
                 layout: 'main',
                 messages: req.flash()
             });
@@ -284,7 +284,7 @@ class DashboardController {
             const recentVideos = await Video.getRecent(10);
 
             res.render('dashboard/admin', {
-                title: 'Admin Panel - TikTok Downloader Pro',
+                title: 'Admin Panel - HDA Downloader',
                 layout: 'main',
                 systemStats,
                 recentUsers,

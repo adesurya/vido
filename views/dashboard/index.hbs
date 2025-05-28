@@ -365,21 +365,42 @@
 </div>
 
 <style>
+
+/* Recent Downloads Card Styling Fix */
 .recent-download-card {
+    background-color: #ffffff !important; /* White background */
+    border: 1px solid #e5e7eb;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border: 1px solid rgba(0,0,0,0.1);
+    color: #1f2937 !important; /* Dark text */
 }
 
 .recent-download-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     border-color: var(--bs-primary);
+    background-color: #ffffff !important; /* Keep white on hover */
 }
 
-.video-duration-badge {
-    position: absolute;
-    bottom: 4px;
-    right: 4px;
+.recent-download-card .card-body {
+    background-color: transparent !important;
+    color: #1f2937 !important; /* Dark text */
+}
+
+.recent-download-card .card-title {
+    color: #1f2937 !important; /* Dark title */
+    font-weight: 600;
+}
+
+.recent-download-card .card-text {
+    color: #6b7280 !important; /* Gray text for subtitle */
+}
+
+.recent-download-card .text-muted {
+    color: #9ca3af !important; /* Light gray for muted text */
+}
+
+/* Video duration badge on cards */
+.recent-download-card .video-duration-badge {
     background: rgba(0, 0, 0, 0.8);
     color: white;
     padding: 2px 6px;
@@ -388,155 +409,96 @@
     font-weight: 600;
 }
 
-.video-duration-small {
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    background: rgba(0, 0, 0, 0.8);
+/* Badge colors adjustment */
+.recent-download-card .badge.bg-primary {
+    background-color: #3b82f6 !important;
+    color: white !important;
+}
+
+.recent-download-card .badge.bg-info {
+    background-color: #06b6d4 !important;
+    color: white !important;
+}
+
+.recent-download-card .badge.bg-light {
+    background-color: #f3f4f6 !important;
+    color: #374151 !important;
+    border: 1px solid #d1d5db;
+}
+
+/* Button styling in cards */
+.recent-download-card .btn-outline-primary {
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+.recent-download-card .btn-outline-primary:hover {
+    background-color: #3b82f6;
     color: white;
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-size: 0.6rem;
-    font-weight: 600;
 }
 
-.video-play-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 24px;
-    height: 24px;
-    background: rgba(99, 102, 241, 0.9);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.recent-download-card .btn-outline-secondary {
+    border-color: #6b7280;
+    color: #6b7280;
+}
+
+.recent-download-card .btn-outline-secondary:hover {
+    background-color: #6b7280;
     color: white;
-    font-size: 0.7rem;
-    opacity: 0;
-    transition: opacity 0.2s ease;
 }
 
-.recent-download-card:hover .video-play-overlay {
-    opacity: 1;
+/* Fix for any dark styling that might be inherited */
+.recent-download-card * {
+    color: inherit;
 }
 
+.recent-download-card h6,
+.recent-download-card .fw-bold {
+    color: #1f2937 !important;
+}
+
+.recent-download-card small {
+    color: #6b7280 !important;
+}
+
+/* Popular video items styling fix (if needed) */
 .popular-video-item {
+    background-color: transparent;
+    color: #1f2937;
     transition: background-color 0.2s ease;
     padding: 0.5rem;
     border-radius: 0.5rem;
 }
 
 .popular-video-item:hover {
-    background-color: rgba(0,0,0,0.05);
+    background-color: #f9fafb;
 }
 
-.video-stats .badge {
-    font-size: 0.7rem;
+.popular-video-item h6 {
+    color: #1f2937 !important;
 }
 
-.shadow-hover {
-    transition: box-shadow 0.2s ease;
+.popular-video-item .text-muted {
+    color: #6b7280 !important;
 }
 
-.shadow-hover:hover {
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+/* Ensure card container has proper background */
+#recentDownloadsContainer .card {
+    background-color: #ffffff !important;
+    border: 1px solid #e5e7eb;
 }
 
-/* Download page specific styles */
-#recentDownloads .recent-download-card {
-    cursor: pointer;
+/* Fix for any potential dark theme overrides */
+.card.recent-download-card {
+    background: #ffffff !important;
+    color: #1f2937 !important;
 }
 
-#recentDownloads .video-stats .badge {
-    font-size: 0.65rem;
-    padding: 0.2rem 0.4rem;
+.card.recent-download-card .card-body {
+    background: transparent !important;
 }
 
-#recentDownloads .btn-group .btn-sm {
-    padding: 0.2rem 0.5rem;
-    font-size: 0.75rem;
-}
-
-/* Modal enhancements */
-.modal-lg {
-    max-width: 900px;
-}
-
-.modal-content {
-    border-radius: 0.75rem;
-}
-
-.modal-header {
-    border-bottom: 1px solid rgba(0,0,0,0.1);
-}
-
-.modal-body {
-    padding: 1.5rem;
-}
-
-/* Video preview modal */
-#downloadVideoPreviewModal .modal-body {
-    padding: 0;
-}
-
-#downloadVideoPreviewModal video {
-    border-radius: 0 0 0.75rem 0.75rem;
-}
-
-/* Loading states */
-.loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(255, 255, 255, 0.9);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: inherit;
-    z-index: 10;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    #recentDownloads .col-md-6 {
-        margin-bottom: 1rem;
-    }
-    
-    .recent-download-card .card-body {
-        padding: 1rem;
-    }
-    
-    .video-stats .badge {
-        font-size: 0.6rem;
-        padding: 0.1rem 0.3rem;
-    }
-    
-    .modal-lg {
-        max-width: 95%;
-        margin: 1rem auto;
-    }
-}
-
-@media (max-width: 576px) {
-    .recent-download-card .d-flex {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .recent-download-card .position-relative {
-        margin-bottom: 0.5rem;
-        align-self: center;
-    }
-    
-    .recent-download-card .flex-grow-1 {
-        flex-grow: 0;
-    }
-}
-</style>
+</style>>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

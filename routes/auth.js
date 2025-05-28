@@ -149,7 +149,7 @@ router.get('/check', authController.checkAuth);
 // Password reset routes (future implementation)
 router.get('/forgot-password', redirectIfAuth, (req, res) => {
     res.render('auth/forgot-password', {
-        title: 'Forgot Password - TikTok Downloader Pro',
+        title: 'Forgot Password - HDA Downloader',
         layout: 'main',
         messages: req.flash()
     });

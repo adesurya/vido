@@ -22,7 +22,7 @@ const dashboardRoutes = require('./routes/dashboard');
 const { loadUser, generateCSRF } = require('./middleware/auth');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 7000;
 
 // Trust proxy (for rate limiting behind reverse proxy)
 app.set('trust proxy', 1);
@@ -154,7 +154,7 @@ app.use(generateCSRF);
 
 // Global template variables
 app.use((req, res, next) => {
-    res.locals.appName = process.env.APP_NAME || 'TikTok Downloader Pro';
+    res.locals.appName = process.env.APP_NAME || '';
     res.locals.appVersion = process.env.APP_VERSION || '1.0.0';
     res.locals.currentYear = new Date().getFullYear();
     res.locals.nodeEnv = process.env.NODE_ENV;
@@ -174,7 +174,7 @@ app.get('/', (req, res) => {
     }
     
     res.render('home', {
-        title: 'Welcome - TikTok Downloader Pro',
+        title: 'Welcome - HDA Downloader',
         layout: 'main',
         showNavbar: false,
         messages: req.flash()
@@ -184,7 +184,7 @@ app.get('/', (req, res) => {
 // About page
 app.get('/about', (req, res) => {
     res.render('about', {
-        title: 'About - TikTok Downloader Pro',
+        title: 'About - HDA Downloader',
         layout: 'main'
     });
 });
@@ -192,7 +192,7 @@ app.get('/about', (req, res) => {
 // Privacy policy
 app.get('/privacy', (req, res) => {
     res.render('privacy', {
-        title: 'Privacy Policy - TikTok Downloader Pro',
+        title: 'Privacy Policy - HDA Downloader',
         layout: 'main'
     });
 });
@@ -200,7 +200,7 @@ app.get('/privacy', (req, res) => {
 // Terms of service
 app.get('/terms', (req, res) => {
     res.render('terms', {
-        title: 'Terms of Service - TikTok Downloader Pro',
+        title: 'Terms of Service - HDA Downloader',
         layout: 'main'
     });
 });
@@ -208,7 +208,7 @@ app.get('/terms', (req, res) => {
 // API documentation
 app.get('/docs', (req, res) => {
     res.render('docs', {
-        title: 'API Documentation - TikTok Downloader Pro',
+        title: 'API Documentation - HDA Downloader',
         layout: 'main'
     });
 });
@@ -239,7 +239,7 @@ app.use((req, res, next) => {
     }
     
     res.status(404).render('error', {
-        title: 'Page Not Found - TikTok Downloader Pro',
+        title: 'Page Not Found - HDA Downloader',
         layout: 'main',
         error: {
             status: 404,
@@ -290,7 +290,7 @@ app.use((error, req, res, next) => {
     // HTML error response
     const status = error.status || 500;
     res.status(status).render('error', {
-        title: 'Error - TikTok Downloader Pro',
+        title: 'Error - HDA Downloader',
         layout: 'main',
         error: {
             status: status,
