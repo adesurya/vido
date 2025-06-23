@@ -1,5 +1,6 @@
 const axios = require('axios');
 const Video = require('../models/Video');
+const { v4: uuidv4 } = require('uuid');
 
 class TikTokService {
     constructor() {
@@ -271,99 +272,64 @@ class TikTokService {
 
     // Record download in history
     async recordDownload(userId, videoId, downloadType = 'single', batchId = null) {
-        try {
-            const DownloadHistory = require('../models/DownloadHistory');
-            await DownloadHistory.create({
-                user_id: userId,
-                video_id: videoId,
-                download_type: downloadType,
-                batch_id: batchId,
-                status: 'completed'
-            });
-            console.log('📝 Download recorded in history');
-        } catch (error) {
-            console.error('Error recording download:', error);
+    try {
+        const { executeQuery, getOne } = require('../config/database');
+        
+        // PERBAIKAN: Cek duplikasi lebih ketat
+        let checkQuery, checkParams;
+        
+        if (batchId && downloadType === 'bulk') {
+            // Untuk bulk, cek berdasarkan batch_id + video_id + user_id
+            checkQuery = `
+                SELECT id FROM download_history 
+                WHERE user_id = ? AND video_id = ? AND batch_id = ?
+            `;
+            checkParams = [userId, videoId, batchId];
+        } else {
+            // Untuk single, cek berdasarkan user_id + video_id + waktu (dalam 1 menit terakhir)
+            checkQuery = `
+                SELECT id FROM download_history 
+                WHERE user_id = ? AND video_id = ? AND download_type = ?
+                AND downloaded_at > DATE_SUB(NOW(), INTERVAL 1 MINUTE)
+            `;
+            checkParams = [userId, videoId, downloadType];
         }
-    }
-
-    // Process bulk download
-    async processBulkDownload(urls, userId, batchId) {
-        const results = {
-            successful: [],
-            failed: [],
-            total: urls.length,
-            batchId: batchId
-        };
-
-        // Update bulk session status
-        await this.updateBulkSession(batchId, {
-            status: 'processing',
-            total_videos: urls.length
-        });
-
-        for (let i = 0; i < urls.length; i++) {
-            try {
-                // Add delay between requests (rate limiting)
-                if (i > 0) {
-                    await this.delay(parseInt(process.env.BULK_PROCESSING_DELAY) || 500);
-                }
-
-                const url = urls[i].trim();
-                if (!url) continue;
-
-                const result = await this.downloadVideo(url, userId);
-                
-                // Record bulk download
-                await this.recordDownload(userId, result.video.id, 'bulk', batchId);
-                
-                results.successful.push({
-                    url: url,
-                    video: result.video,
-                    downloadUrls: result.downloadUrls
-                });
-
-                // Update progress
-                await this.updateBulkSession(batchId, {
-                    processed_videos: i + 1,
-                    successful_downloads: results.successful.length
-                });
-
-            } catch (error) {
-                console.error(`Bulk download error for URL ${urls[i]}:`, error.message);
-                
-                results.failed.push({
-                    url: urls[i],
-                    error: error.message
-                });
-
-                // Update failed count
-                await this.updateBulkSession(batchId, {
-                    processed_videos: i + 1,
-                    failed_downloads: results.failed.length
-                });
-            }
+        
+        const existing = await getOne(checkQuery, checkParams);
+        
+        if (existing) {
+            console.log('📝 Duplicate download record prevented');
+            return existing.id; // Return existing ID
         }
-
-        // Mark bulk session as completed
-        await this.updateBulkSession(batchId, {
-            status: 'completed',
-            completed_at: new Date()
-        });
-
-        return results;
+        
+        // Insert new record
+        const result = await executeQuery(
+            'INSERT INTO download_history (user_id, video_id, download_type, batch_id, status) VALUES (?, ?, ?, ?, ?)',
+            [userId, videoId, downloadType, batchId, 'completed']
+        );
+        
+        console.log('📝 New download recorded:', result.insertId);
+        return result.insertId;
+        
+    } catch (error) {
+        console.error('Error recording download:', error);
+        return null;
     }
+}
 
-    // Create bulk session
+    // Create bulk session - FIXED VERSION
     async createBulkSession(userId, totalVideos) {
         try {
             const { executeQuery } = require('../config/database');
-            const { v4: uuidv4 } = require('uuid');
-            
             const batchId = uuidv4();
             
-            const query = `INSERT INTO bulk_sessions (batch_id, user_id, total_videos, status) VALUES ('${batchId}', ${userId}, ${totalVideos}, 'pending')`;
+            const query = `
+                INSERT INTO bulk_sessions (batch_id, user_id, total_videos, status) 
+                VALUES (?, ?, ?, 'pending')
+            `;
             
-            await executeQuery(query);
+            await executeQuery(query, [batchId, userId, totalVideos]);
+            console.log('✅ Bulk session created:', batchId);
             return batchId;
         } catch (error) {
             console.error('Error creating bulk session:', error);
@@ -371,80 +337,228 @@ class TikTokService {
         }
     }
 
-    // Update bulk session
+    // Update bulk session - FIXED VERSION
     async updateBulkSession(batchId, updateData) {
-        try {
-            const { executeQuery } = require('../config/database');
-            
-            const updates = [];
-            for (const [key, value] of Object.entries(updateData)) {
-                if (value !== undefined) {
-                    if (typeof value === 'string') {
-                        updates.push(`${key} = '${value}'`);
+    try {
+        const { executeQuery } = require('../config/database');
+        
+        const updates = [];
+        const values = [];
+        
+        for (const [key, value] of Object.entries(updateData)) {
+            if (value !== undefined) {
+                updates.push(`${key} = ?`);
+                
+                // PERBAIKAN: Format datetime untuk MySQL
+                if (key === 'completed_at' && value) {
+                    if (typeof value === 'string' && value.includes('T')) {
+                        // Convert ISO string ke MySQL datetime format
+                        const date = new Date(value);
+                        values.push(date.toISOString().slice(0, 19).replace('T', ' '));
                     } else {
-                        updates.push(`${key} = ${value}`);
+                        values.push(value);
                     }
+                } else {
+                    values.push(value);
                 }
             }
-
-            if (updates.length === 0) return;
-
-            const query = `UPDATE bulk_sessions SET ${updates.join(', ')} WHERE batch_id = '${batchId}'`;
-            await executeQuery(query);
-        } catch (error) {
-            console.error('Error updating bulk session:', error);
         }
-    }
 
-    // Get bulk session status
+        if (updates.length === 0) return;
+
+        values.push(batchId);
+        const query = `UPDATE bulk_sessions SET ${updates.join(', ')} WHERE batch_id = ?`;
+        
+        await executeQuery(query, values);
+        console.log('📝 Bulk session updated:', batchId);
+    } catch (error) {
+        console.error('Error updating bulk session:', error);
+    }
+}
+
+    // Get bulk session status - FIXED VERSION
     async getBulkSessionStatus(batchId) {
-        try {
-            const { getOne } = require('../config/database');
-            
-            const session = await getOne(
-                `SELECT * FROM bulk_sessions WHERE batch_id = '${batchId}'`
-            );
+    try {
+        const { getOne } = require('../config/database');
+        
+        const session = await getOne(
+            'SELECT * FROM bulk_sessions WHERE batch_id = ?',
+            [batchId]
+        );
 
-            if (!session) {
-                throw new Error('Bulk session not found');
-            }
-
-            return {
-                batchId: session.batch_id,
-                status: session.status,
-                totalVideos: session.total_videos,
-                processedVideos: session.processed_videos,
-                successfulDownloads: session.successful_downloads,
-                failedDownloads: session.failed_downloads,
-                progress: session.total_videos > 0 ? 
-                    Math.round((session.processed_videos / session.total_videos) * 100) : 0,
-                createdAt: session.created_at,
-                completedAt: session.completed_at
-            };
-        } catch (error) {
-            console.error('Error getting bulk session status:', error);
-            throw error;
+        if (!session) {
+            throw new Error('Bulk session not found');
         }
-    }
 
-    // Parse CSV content for bulk download
+        // PERBAIKAN: Logic status yang lebih akurat
+        let finalStatus = session.status;
+        let finalProgress = 0;
+
+        if (session.total_videos > 0) {
+            finalProgress = Math.round((session.processed_videos / session.total_videos) * 100);
+            
+            // Jika processed sudah sama dengan total tapi status masih processing
+            if (session.processed_videos >= session.total_videos && session.status === 'processing') {
+                finalStatus = 'completed';
+                
+                // Update database juga
+                const { executeQuery } = require('../config/database');
+                await executeQuery(
+                    'UPDATE bulk_sessions SET status = ?, completed_at = NOW() WHERE batch_id = ?',
+                    ['completed', batchId]
+                );
+                
+                console.log(`🔄 Auto-completed session ${batchId}`);
+            }
+        }
+
+        return {
+            batchId: session.batch_id,
+            status: finalStatus,
+            totalVideos: session.total_videos,
+            processedVideos: session.processed_videos,
+            successfulDownloads: session.successful_downloads,
+            failedDownloads: session.failed_downloads,
+            progress: finalProgress,
+            createdAt: session.created_at,
+            completedAt: session.completed_at
+        };
+    } catch (error) {
+        console.error('Error getting bulk session status:', error);
+        throw error;
+    }
+}
+
+    // Process bulk download - IMPROVED VERSION
+    async processBulkDownload(urls, userId, batchId) {
+    console.log(`🎯 Starting bulk processing for ${urls.length} URLs, batch: ${batchId}`);
+
+    try {
+        // Update status ke processing
+        await this.updateBulkSession(batchId, {
+            status: 'processing',
+            total_videos: urls.length
+        });
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (let i = 0; i < urls.length; i++) {
+    try {
+        const url = urls[i].trim();
+        if (!url) continue;
+
+        console.log(`📥 Processing ${i + 1}/${urls.length}: ${url}`);
+
+        const result = await this.downloadVideo(url, userId);
+        
+        // PERBAIKAN: Cek apakah sudah ada record untuk batch ini + video ini
+        const { getOne } = require('../config/database');
+        const existingRecord = await getOne(
+            'SELECT id FROM download_history WHERE user_id = ? AND video_id = ? AND batch_id = ?',
+            [userId, result.video.id, batchId]
+        );
+        
+        if (!existingRecord) {
+            await this.recordDownload(userId, result.video.id, 'bulk', batchId);
+            successCount++;
+            console.log(`✅ Success ${successCount}/${urls.length}`);
+        } else {
+            console.log(`⏭️ Already recorded, skipping...`);
+            successCount++; // Count as success but don't record again
+        }
+
+        // Update progress
+        await this.updateBulkSession(batchId, {
+            processed_videos: i + 1,
+            successful_downloads: successCount,
+            failed_downloads: failCount
+        });
+
+        if (i < urls.length - 1) {
+            await this.delay(500);
+        }
+
+    } catch (error) {
+        failCount++;
+        console.error(`❌ Error processing URL ${i + 1}:`, error.message);
+        
+        await this.updateBulkSession(batchId, {
+            processed_videos: i + 1,
+            successful_downloads: successCount,
+            failed_downloads: failCount
+        });
+    }
+}
+
+        // PERBAIKAN: Gunakan NOW() MySQL function
+        await this.updateBulkSession(batchId, {
+            status: 'completed',
+            processed_videos: urls.length,
+            successful_downloads: successCount,
+            failed_downloads: failCount
+        });
+
+        // Update completed_at secara terpisah dengan NOW()
+        const { executeQuery } = require('../config/database');
+        await executeQuery(`
+            UPDATE bulk_sessions 
+            SET 
+                status = 'completed',
+                completed_at = NOW(),
+                processed_videos = ?,
+                successful_downloads = ?,
+                failed_downloads = ?
+            WHERE batch_id = ?
+        `, [urls.length, successCount, failCount, batchId]);
+
+        console.log(`✅ Bulk session marked as COMPLETED in database`);
+
+    } catch (error) {
+        console.error('❌ Bulk processing failed:', error);
+        
+        // Update status ke failed dengan NOW()
+        const { executeQuery } = require('../config/database');
+        await executeQuery(`
+            UPDATE bulk_sessions 
+            SET status = 'failed', completed_at = NOW() 
+            WHERE batch_id = ?
+        `, [batchId]);
+    }
+}
+
+
+    // Parse CSV content for bulk download - IMPROVED VERSION
     parseBulkUrls(csvContent) {
         const lines = csvContent.split('\n');
         const urls = [];
 
+        console.log(`📄 Parsing CSV with ${lines.length} lines`);
+
         for (let i = 1; i < lines.length; i++) { // Skip header
             const line = lines[i].trim();
             if (line) {
-                const columns = line.split(',');
-                if (columns.length > 0) {
-                    const url = columns[0].replace(/"/g, '').trim();
-                    if (url && url !== 'url') {
-                        urls.push(url);
-                    }
+                // Handle different CSV formats
+                let url = '';
+                
+                // Try to extract URL from comma-separated line
+                if (line.includes(',')) {
+                    const columns = line.split(',');
+                    url = columns[0].replace(/"/g, '').trim();
+                } else {
+                    // Single column or tab-separated
+                    url = line.replace(/"/g, '').trim();
+                }
+                
+                if (url && url !== 'url' && this.isValidTikTokUrl(url)) {
+                    urls.push(url);
+                } else if (url && url !== 'url') {
+                    console.log(`⚠️ Invalid URL skipped: ${url}`);
                 }
             }
         }
 
+        console.log(`✅ Found ${urls.length} valid URLs in CSV`);
         return urls;
     }
 
@@ -479,9 +593,9 @@ class TikTokService {
                         COUNT(CASE WHEN download_type = 'bulk' THEN 1 END) as bulk_downloads,
                         COUNT(CASE WHEN download_type = 'single' THEN 1 END) as single_downloads
                     FROM download_history 
-                    WHERE user_id = ${userId}
+                    WHERE user_id = ?
                 `;
-                recentQuery = `SELECT COUNT(*) as recent_downloads FROM download_history WHERE user_id = ${userId} AND downloaded_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)`;
+                recentQuery = `SELECT COUNT(*) as recent_downloads FROM download_history WHERE user_id = ? AND downloaded_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)`;
             } else {
                 query = `
                     SELECT 
@@ -495,8 +609,8 @@ class TikTokService {
                 recentQuery = `SELECT COUNT(*) as recent_downloads FROM download_history WHERE downloaded_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)`;
             }
 
-            const stats = await getOne(query);
-            const recentStats = await getOne(recentQuery);
+            const stats = await getOne(query, userId ? [userId] : []);
+            const recentStats = await getOne(recentQuery, userId ? [userId] : []);
 
             return {
                 total_downloads: stats?.total_downloads || 0,

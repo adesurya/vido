@@ -64,7 +64,7 @@ router.get('/download/template',
 );
 
 // Get download history
-router.get('/download/history',
+router.get('/download/history', 
     requireAuth,
     videoController.getDownloadHistory
 );

@@ -7,7 +7,7 @@ class AuthController {
     async showLogin(req, res) {
         try {
             res.render('auth/login', {
-                title: 'Login - TikTok Downloader Pro',
+                title: 'Login - HDA Downloader',
                 layout: 'main',
                 messages: req.flash()
             });
@@ -144,7 +144,7 @@ class AuthController {
     async showRegister(req, res) {
         try {
             res.render('auth/register', {
-                title: 'Register - TikTok Downloader Pro',
+                title: 'Register - HDA Downloader',
                 layout: 'main',
                 messages: req.flash()
             });
@@ -230,7 +230,7 @@ class AuthController {
                 });
             }
 
-            req.flash('success', `Welcome to TikTok Downloader Pro, ${user.username}!`);
+            req.flash('success', `Welcome to HDA Downloader, ${user.username}!`);
             res.redirect('/dashboard');
 
         } catch (error) {

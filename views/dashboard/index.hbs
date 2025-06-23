@@ -365,21 +365,42 @@
 </div>
 
 <style>
+
+/* Recent Downloads Card Styling Fix */
 .recent-download-card {
+    background-color: #ffffff !important; /* White background */
+    border: 1px solid #e5e7eb;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border: 1px solid rgba(0,0,0,0.1);
+    color: #1f2937 !important; /* Dark text */
 }
 
 .recent-download-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     border-color: var(--bs-primary);
+    background-color: #ffffff !important; /* Keep white on hover */
 }
 
-.video-duration-badge {
-    position: absolute;
-    bottom: 4px;
-    right: 4px;
+.recent-download-card .card-body {
+    background-color: transparent !important;
+    color: #1f2937 !important; /* Dark text */
+}
+
+.recent-download-card .card-title {
+    color: #1f2937 !important; /* Dark title */
+    font-weight: 600;
+}
+
+.recent-download-card .card-text {
+    color: #6b7280 !important; /* Gray text for subtitle */
+}
+
+.recent-download-card .text-muted {
+    color: #9ca3af !important; /* Light gray for muted text */
+}
+
+/* Video duration badge on cards */
+.recent-download-card .video-duration-badge {
     background: rgba(0, 0, 0, 0.8);
     color: white;
     padding: 2px 6px;
@@ -388,164 +409,138 @@
     font-weight: 600;
 }
 
-.video-duration-small {
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    background: rgba(0, 0, 0, 0.8);
+/* Badge colors adjustment */
+.recent-download-card .badge.bg-primary {
+    background-color: #3b82f6 !important;
+    color: white !important;
+}
+
+.recent-download-card .badge.bg-info {
+    background-color: #06b6d4 !important;
+    color: white !important;
+}
+
+.recent-download-card .badge.bg-light {
+    background-color: #f3f4f6 !important;
+    color: #374151 !important;
+    border: 1px solid #d1d5db;
+}
+
+/* Button styling in cards */
+.recent-download-card .btn-outline-primary {
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+.recent-download-card .btn-outline-primary:hover {
+    background-color: #3b82f6;
     color: white;
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-size: 0.6rem;
-    font-weight: 600;
 }
 
-.video-play-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 24px;
-    height: 24px;
-    background: rgba(99, 102, 241, 0.9);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.recent-download-card .btn-outline-secondary {
+    border-color: #6b7280;
+    color: #6b7280;
+}
+
+.recent-download-card .btn-outline-secondary:hover {
+    background-color: #6b7280;
     color: white;
-    font-size: 0.7rem;
-    opacity: 0;
-    transition: opacity 0.2s ease;
 }
 
-.recent-download-card:hover .video-play-overlay {
-    opacity: 1;
+/* Fix for any dark styling that might be inherited */
+.recent-download-card * {
+    color: inherit;
 }
 
+.recent-download-card h6,
+.recent-download-card .fw-bold {
+    color: #1f2937 !important;
+}
+
+.recent-download-card small {
+    color: #6b7280 !important;
+}
+
+/* Popular video items styling fix (if needed) */
 .popular-video-item {
+    background-color: transparent;
+    color: #1f2937;
     transition: background-color 0.2s ease;
     padding: 0.5rem;
     border-radius: 0.5rem;
 }
 
 .popular-video-item:hover {
-    background-color: rgba(0,0,0,0.05);
+    background-color: #f9fafb;
 }
 
-.video-stats .badge {
-    font-size: 0.7rem;
+.popular-video-item h6 {
+    color: #1f2937 !important;
 }
 
-.shadow-hover {
-    transition: box-shadow 0.2s ease;
+.popular-video-item .text-muted {
+    color: #6b7280 !important;
 }
 
-.shadow-hover:hover {
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+/* Ensure card container has proper background */
+#recentDownloadsContainer .card {
+    background-color: #ffffff !important;
+    border: 1px solid #e5e7eb;
 }
 
-/* Download page specific styles */
-#recentDownloads .recent-download-card {
-    cursor: pointer;
+/* Fix for any potential dark theme overrides */
+.card.recent-download-card {
+    background: #ffffff !important;
+    color: #1f2937 !important;
 }
 
-#recentDownloads .video-stats .badge {
-    font-size: 0.65rem;
-    padding: 0.2rem 0.4rem;
+.card.recent-download-card .card-body {
+    background: transparent !important;
 }
 
-#recentDownloads .btn-group .btn-sm {
-    padding: 0.2rem 0.5rem;
-    font-size: 0.75rem;
-}
-
-/* Modal enhancements */
-.modal-lg {
-    max-width: 900px;
-}
-
-.modal-content {
-    border-radius: 0.75rem;
-}
-
-.modal-header {
-    border-bottom: 1px solid rgba(0,0,0,0.1);
-}
-
-.modal-body {
-    padding: 1.5rem;
-}
-
-/* Video preview modal */
-#downloadVideoPreviewModal .modal-body {
-    padding: 0;
-}
-
-#downloadVideoPreviewModal video {
-    border-radius: 0 0 0.75rem 0.75rem;
-}
-
-/* Loading states */
-.loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(255, 255, 255, 0.9);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: inherit;
-    z-index: 10;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    #recentDownloads .col-md-6 {
-        margin-bottom: 1rem;
-    }
-    
-    .recent-download-card .card-body {
-        padding: 1rem;
-    }
-    
-    .video-stats .badge {
-        font-size: 0.6rem;
-        padding: 0.1rem 0.3rem;
-    }
-    
-    .modal-lg {
-        max-width: 95%;
-        margin: 1rem auto;
-    }
-}
-
-@media (max-width: 576px) {
-    .recent-download-card .d-flex {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .recent-download-card .position-relative {
-        margin-bottom: 0.5rem;
-        align-self: center;
-    }
-    
-    .recent-download-card .flex-grow-1 {
-        flex-grow: 0;
-    }
-}
-</style>
+</style>>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize modal instances
+    initializeDashboardModals();
+    
     // Initialize dashboard
     loadDashboardStats();
     
     // Auto-refresh stats every 30 seconds
     setInterval(loadDashboardStats, 30000);
 });
+
+// Initialize Bootstrap modals
+function initializeDashboardModals() {
+    try {
+        // Initialize video details modal
+        const videoDetailsModal = document.getElementById('videoDetailsModal');
+        if (videoDetailsModal) {
+            videoDetailsModalInstance = new bootstrap.Modal(videoDetailsModal, {
+                backdrop: true,
+                keyboard: true
+            });
+        }
+        
+        // Initialize video preview modal (created dynamically)
+        // Will be initialized when needed
+        
+        // Initialize popular video modal
+        const popularVideoModal = document.getElementById('popularVideoModal');
+        if (popularVideoModal) {
+            popularVideoModalInstance = new bootstrap.Modal(popularVideoModal, {
+                backdrop: true,
+                keyboard: true
+            });
+        }
+        
+        console.log('Dashboard modals initialized successfully');
+    } catch (error) {
+        console.error('Error initializing dashboard modals:', error);
+    }
+}
 
 async function loadDashboardStats() {
     try {
@@ -576,44 +571,54 @@ function updateStatsDisplay(stats) {
     });
 }
 
-// Show video details modal
+// Show video details modal - FIXED VERSION
 async function showVideoDetails(videoId, title) {
-    const modal = new bootstrap.Modal(document.getElementById('videoDetailsModal'));
-    const modalContent = document.getElementById('videoDetailsContent');
-    
-    // Show loading state
-    modalContent.innerHTML = `
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2 text-muted">Loading video details...</p>
-        </div>
-    `;
-    
-    modal.show();
-    
     try {
+        if (!videoDetailsModalInstance) {
+            console.error('Video details modal not initialized');
+            Utils.showToast('Modal not available', 'error');
+            return;
+        }
+
+        const modalContent = document.getElementById('videoDetailsContent');
+        
+        // Show loading state
+        if (modalContent) {
+            modalContent.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading video details...</p>
+                </div>
+            `;
+        }
+        
+        videoDetailsModalInstance.show();
+        
         const response = await HttpClient.get(`/dashboard/api/video/${videoId}`);
         
-        if (response.success) {
+        if (response.success && modalContent) {
             const video = response.data;
             modalContent.innerHTML = createVideoDetailsHTML(video);
         } else {
-            throw new Error(response.message);
+            throw new Error(response.message || 'Failed to load video details');
         }
     } catch (error) {
         console.error('Failed to load video details:', error);
-        modalContent.innerHTML = `
-            <div class="text-center py-4">
-                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-                <h6>Failed to Load Details</h6>
-                <p class="text-muted">${error.message || 'Unable to load video details'}</p>
-                <button class="btn btn-outline-secondary" onclick="showVideoDetails(${videoId}, '${title}')">
-                    <i class="fas fa-retry me-1"></i>Try Again
-                </button>
-            </div>
-        `;
+        const modalContent = document.getElementById('videoDetailsContent');
+        if (modalContent) {
+            modalContent.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h6>Failed to Load Details</h6>
+                    <p class="text-muted">${error.message || 'Unable to load video details'}</p>
+                    <button class="btn btn-outline-secondary" onclick="showVideoDetails(${videoId}, '${title.replace(/'/g, "\\'")}')">
+                        <i class="fas fa-retry me-1"></i>Try Again
+                    </button>
+                </div>
+            `;
+        }
     }
 }
 
@@ -635,7 +640,7 @@ function createVideoDetailsHTML(video) {
                 
                 <div class="mb-3">
                     <div class="d-flex align-items-center mb-2">
-                        <img src="${video.author.avatar}" class="rounded-circle me-2" width="32" height="32" alt="Author">
+                        <img src="${video.author.avatar || 'https://via.placeholder.com/32x32/6366f1/ffffff?text=A'}" class="rounded-circle me-2" width="32" height="32" alt="Author">
                         <div>
                             <div class="fw-bold">${video.author.name}</div>
                             <small class="text-muted">Author</small>
@@ -703,10 +708,18 @@ function createVideoDetailsHTML(video) {
     `;
 }
 
-// Play video preview
+// Play video preview - FIXED VERSION
 function playVideoPreview(videoUrl) {
+    const modalId = 'videoPreviewModal';
+    
+    // Remove existing modal if it exists
+    const existingModal = document.getElementById(modalId);
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
     const videoModal = `
-        <div class="modal fade" id="videoPreviewModal" tabindex="-1">
+        <div class="modal fade" id="${modalId}" tabindex="-1">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -724,32 +737,40 @@ function playVideoPreview(videoUrl) {
         </div>
     `;
     
-    // Remove existing modal
-    const existingModal = document.getElementById('videoPreviewModal');
-    if (existingModal) {
-        existingModal.remove();
+    try {
+        // Add new modal
+        document.body.insertAdjacentHTML('beforeend', videoModal);
+        
+        // Initialize and show modal
+        const modal = document.getElementById(modalId);
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+        
+        // Clean up when modal is hidden
+        modal.addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    } catch (error) {
+        console.error('Error creating video preview modal:', error);
+        Utils.showToast('Unable to show video preview', 'error');
     }
-    
-    // Add new modal
-    document.body.insertAdjacentHTML('beforeend', videoModal);
-    
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('videoPreviewModal'));
-    modal.show();
-    
-    // Clean up when modal is hidden
-    document.getElementById('videoPreviewModal').addEventListener('hidden.bs.modal', function() {
-        this.remove();
-    });
 }
 
 // Show popular video info
 function showPopularVideoInfo(videoId, title) {
-    const modal = new bootstrap.Modal(document.getElementById('popularVideoModal'));
-    modal.show();
+    try {
+        if (popularVideoModalInstance) {
+            popularVideoModalInstance.show();
+        } else {
+            Utils.showToast('Popular video modal not available', 'info');
+        }
+    } catch (error) {
+        console.error('Error showing popular video info:', error);
+        Utils.showToast('Unable to show video info', 'error');
+    }
 }
 
-// Refresh recent downloads
+// Refresh recent downloads - IMPROVED VERSION
 async function refreshRecentDownloads() {
     const container = document.getElementById('recentDownloadsContainer');
     const emptyState = document.getElementById('emptyRecentDownloads');
@@ -775,7 +796,7 @@ async function refreshRecentDownloads() {
                 <div class="col-md-6 mb-3">
                     <div class="card recent-download-card shadow-hover" 
                          style="cursor: pointer;" 
-                         onclick="showVideoDetails(${activity.video_id}, '${activity.title}')">
+                         onclick="showVideoDetails(${activity.video_id}, '${activity.title.replace(/'/g, "\\'")}')">
                         <div class="card-body p-3">
                             <div class="d-flex align-items-start">
                                 <div class="position-relative me-3">
@@ -815,7 +836,7 @@ async function refreshRecentDownloads() {
                                                 <i class="fas fa-download"></i>
                                             </a>
                                             <button class="btn btn-outline-secondary btn-sm" 
-                                                    onclick="event.stopPropagation(); showVideoDetails(${activity.video_id}, '${activity.title}')" 
+                                                    onclick="event.stopPropagation(); showVideoDetails(${activity.video_id}, '${activity.title.replace(/'/g, "\\'")}');" 
                                                     title="View Details">
                                                 <i class="fas fa-info-circle"></i>
                                             </button>

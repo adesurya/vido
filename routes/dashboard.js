@@ -22,7 +22,13 @@ router.get('/history', dashboardController.showHistory);
 router.get('/api/stats', dashboardController.getStats);
 router.get('/api/activity', dashboardController.getRecentActivity);
 router.get('/api/search', dashboardController.searchVideos);
+<<<<<<< HEAD
 router.get('/api/video/:id', dashboardController.getVideoDetails);
+=======
+
+router.get('/api/video/:id', requireAuth, dashboardController.getVideoDetails);
+
+>>>>>>> 8433ff2048f2a85c6af5f8ebed698d7f423d9d28
 
 // Admin routes
 router.get('/admin', requireAdmin, dashboardController.showAdmin);
