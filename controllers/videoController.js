@@ -292,28 +292,79 @@ https://www.tiktok.com/@username/video/9876543210987654321,Another Video Title,A
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 20;
             const offset = (page - 1) * limit;
+            
+            // Get search and filter parameters
+            const searchTerm = req.query.search ? req.query.search.trim() : '';
+            const filterType = req.query.type || '';
+            const sortBy = req.query.sort || 'downloaded_at_desc';
 
             const { executeQuery, getOne } = require('../config/database');
 
-            // Get total count
-            const totalResult = await getOne(
-                'SELECT COUNT(*) as total FROM download_history WHERE user_id = ?',
-                [userId]
-            );
+            // Build WHERE clause for filtering
+            let whereConditions = ['dh.user_id = ?'];
+            let queryParams = [userId];
+
+            // Add search filter
+            if (searchTerm) {
+                whereConditions.push('(v.title LIKE ? OR v.author_name LIKE ?)');
+                queryParams.push(`%${searchTerm}%`, `%${searchTerm}%`);
+            }
+
+            // Add type filter
+            if (filterType) {
+                whereConditions.push('dh.download_type = ?');
+                queryParams.push(filterType);
+            }
+
+            const whereClause = whereConditions.join(' AND ');
+
+            // Build ORDER BY clause
+            let orderByClause = '';
+            switch (sortBy) {
+                case 'downloaded_at_asc':
+                    orderByClause = 'ORDER BY dh.downloaded_at ASC';
+                    break;
+                case 'title_asc':
+                    orderByClause = 'ORDER BY v.title ASC';
+                    break;
+                case 'title_desc':
+                    orderByClause = 'ORDER BY v.title DESC';
+                    break;
+                case 'play_count_desc':
+                    orderByClause = 'ORDER BY v.play_count DESC';
+                    break;
+                case 'digg_count_desc':
+                    orderByClause = 'ORDER BY v.digg_count DESC';
+                    break;
+                default:
+                    orderByClause = 'ORDER BY dh.downloaded_at DESC';
+            }
+
+            // Get total count for pagination
+            const countQuery = `
+                SELECT COUNT(*) as total 
+                FROM download_history dh
+                JOIN videos v ON dh.video_id = v.id
+                WHERE ${whereClause}
+            `;
+            const totalResult = await getOne(countQuery, queryParams);
             const total = totalResult?.total || 0;
 
-            // Get download history
-            const history = await executeQuery(`
+            // Get download history with search and filters
+            const historyQuery = `
                 SELECT 
                     dh.*,
                     v.title, v.cover_url, v.author_name, v.duration,
                     v.play_count, v.digg_count, v.comment_count, v.share_count, v.download_count
                 FROM download_history dh
                 JOIN videos v ON dh.video_id = v.id
-                WHERE dh.user_id = ?
-                ORDER BY dh.downloaded_at DESC
+                WHERE ${whereClause}
+                ${orderByClause}
                 LIMIT ? OFFSET ?
-            `, [userId, limit, offset]);
+            `;
+            
+            queryParams.push(limit, offset);
+            const history = await executeQuery(historyQuery, queryParams);
 
             const formattedHistory = history.map(row => ({
                 id: row.id,
@@ -346,6 +397,11 @@ https://www.tiktok.com/@username/video/9876543210987654321,Another Video Title,A
                         limit: limit,
                         total: total,
                         pages: Math.ceil(total / limit)
+                    },
+                    filters: {
+                        search: searchTerm,
+                        type: filterType,
+                        sort: sortBy
                     }
                 }
             });

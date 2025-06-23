@@ -57,6 +57,7 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             
+            <!-- Navigation Section for Main Layout (UPDATE EXISTING NAVIGATION) -->
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
@@ -69,6 +70,13 @@
                         <a class="nav-link {{#if (eq currentPath '/dashboard/download')}}active{{/if}}" href="/dashboard/download">
                             <i class="fas fa-download me-1"></i>
                             Download
+                        </a>
+                    </li>
+                    <!-- NEW HISTORY MENU ITEM -->
+                    <li class="nav-item">
+                        <a class="nav-link {{#if (eq currentPath '/dashboard/history')}}active{{/if}}" href="/dashboard/history">
+                            <i class="fas fa-history me-1"></i>
+                            History
                         </a>
                     </li>
                     {{#if isAdmin}}

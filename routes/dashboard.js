@@ -15,11 +15,14 @@ router.get('/', dashboardController.showDashboard);
 // Download page
 router.get('/download', dashboardController.showDownload);
 
+// History page (NEW)
+router.get('/history', dashboardController.showHistory);
+
 // Dashboard API endpoints
 router.get('/api/stats', dashboardController.getStats);
 router.get('/api/activity', dashboardController.getRecentActivity);
 router.get('/api/search', dashboardController.searchVideos);
-router.get('/api/video/:id', dashboardController.getVideoDetails); // New route for video details
+router.get('/api/video/:id', dashboardController.getVideoDetails);
 
 // Admin routes
 router.get('/admin', requireAdmin, dashboardController.showAdmin);

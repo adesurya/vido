@@ -34,9 +34,13 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
             scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
+            scriptSrcAttr: ["'unsafe-inline'"], // Allow inline event handlers
             imgSrc: ["'self'", "data:", "https:", "http:"],
             fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
-            connectSrc: ["'self'"]
+            connectSrc: ["'self'"],
+            mediaSrc: ["'self'", "data:", "https:", "http:"], // Allow video sources
+            objectSrc: ["'none'"],
+            upgradeInsecureRequests: []
         }
     },
     crossOriginEmbedderPolicy: false

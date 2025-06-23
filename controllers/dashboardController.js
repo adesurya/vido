@@ -475,6 +475,24 @@ class DashboardController {
             });
         }
     }
+
+    
+// Show download history page (ADD THIS METHOD TO DashboardController class)
+    async showHistory(req, res) {
+        try {
+            res.render('dashboard/history', {
+                title: 'Download History - TikTok Downloader Pro',
+                layout: 'main',
+                messages: req.flash()
+            });
+        } catch (error) {
+            console.error('Show history page error:', error);
+            res.status(500).render('error', { 
+                message: 'Failed to load history page',
+                layout: 'main' 
+            });
+        }
+    }
 }
 
 module.exports = new DashboardController();

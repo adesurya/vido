@@ -1,0 +1,1213 @@
+{{!-- 
+  File: views/dashboard/history.hbs
+  CSP Compliant Download History Page for TikTok Downloader Pro
+--}}
+
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">
+                        <i class="fas fa-history text-primary me-2"></i>
+                        Download History
+                    </h1>
+                    <p class="text-muted mb-0">
+                        View and manage your previously downloaded TikTok videos
+                    </p>
+                </div>
+                <div>
+                    <button class="btn btn-outline-primary me-2" id="refreshHistoryBtn">
+                        <i class="fas fa-sync-alt me-1"></i>
+                        Refresh
+                    </button>
+                    <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#statsModal">
+                        <i class="fas fa-chart-bar me-1"></i>
+                        Statistics
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" class="form-control" id="searchInput" placeholder="Search videos by title or author...">
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" id="filterType">
+                <option value="">All Types</option>
+                <option value="single">Single Downloads</option>
+                <option value="bulk">Bulk Downloads</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" id="sortBy">
+                <option value="downloaded_at_desc">Latest First</option>
+                <option value="downloaded_at_asc">Oldest First</option>
+                <option value="title_asc">Title A-Z</option>
+                <option value="title_desc">Title Z-A</option>
+                <option value="play_count_desc">Most Viewed</option>
+                <option value="digg_count_desc">Most Liked</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4" id="statsCards">
+        <div class="col-md-3 mb-3">
+            <div class="card text-center stats-card">
+                <div class="card-body">
+                    <i class="fas fa-download fa-2x text-primary mb-2"></i>
+                    <h5 class="card-title mb-1" id="totalDownloads">0</h5>
+                    <p class="card-text text-muted small">Total Downloads</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center stats-card">
+                <div class="card-body">
+                    <i class="fas fa-video fa-2x text-success mb-2"></i>
+                    <h5 class="card-title mb-1" id="singleDownloads">0</h5>
+                    <p class="card-text text-muted small">Single Downloads</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center stats-card">
+                <div class="card-body">
+                    <i class="fas fa-layer-group fa-2x text-info mb-2"></i>
+                    <h5 class="card-title mb-1" id="bulkDownloads">0</h5>
+                    <p class="card-text text-muted small">Bulk Downloads</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center stats-card">
+                <div class="card-body">
+                    <i class="fas fa-calendar fa-2x text-warning mb-2"></i>
+                    <h5 class="card-title mb-1" id="recentDownloads">0</h5>
+                    <p class="card-text text-muted small">This Week</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Content -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-list me-2"></i>
+                            Download History
+                        </h5>
+                        <div class="d-flex align-items-center">
+                            <small class="text-muted me-3" id="resultCount">Loading...</small>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-outline-secondary" id="gridViewBtn" title="Grid View">
+                                    <i class="fas fa-th"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary active" id="listViewBtn" title="List View">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="historyContent">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-3 text-muted">Loading download history...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <nav aria-label="History pagination">
+                <ul class="pagination justify-content-center" id="paginationContainer">
+                    <!-- Pagination will be generated by JavaScript -->
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- Video Details Modal -->
+<div class="modal fade" id="videoDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Video Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="videoDetailsContent">
+                <!-- Content will be loaded by JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Modal -->
+<div class="modal fade" id="statsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Download Statistics
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="statsModalContent">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="fw-bold mb-3">Download Summary</h6>
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item d-flex justify-content-between">
+                                <span>Total Downloads</span>
+                                <span class="badge bg-primary" id="modalTotalDownloads">0</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between">
+                                <span>Successful Downloads</span>
+                                <span class="badge bg-success" id="modalSuccessfulDownloads">0</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between">
+                                <span>Failed Downloads</span>
+                                <span class="badge bg-danger" id="modalFailedDownloads">0</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between">
+                                <span>Success Rate</span>
+                                <span class="badge bg-info" id="modalSuccessRate">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="fw-bold mb-3">Download Types</h6>
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item d-flex justify-content-between">
+                                <span>Single Downloads</span>
+                                <span class="badge bg-primary" id="modalSingleDownloads">0</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between">
+                                <span>Bulk Downloads</span>
+                                <span class="badge bg-info" id="modalBulkDownloads">0</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between">
+                                <span>Recent Downloads (7 days)</span>
+                                <span class="badge bg-warning" id="modalRecentDownloads">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.history-card {
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out;
+}
+
+.history-card:hover {
+    transform: translateY(-2px);
+}
+
+.history-item {
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.history-item:hover {
+    background-color: #f8f9fa;
+}
+
+.video-thumbnail {
+    height: 200px;
+    object-fit: cover;
+}
+
+.video-duration {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.video-duration-badge {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.video-duration-small {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 10px;
+}
+
+.video-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.history-card:hover .video-overlay {
+    opacity: 1;
+}
+
+.shadow-hover {
+    transition: box-shadow 0.2s ease-in-out;
+}
+
+.shadow-hover:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.video-stats-horizontal .badge {
+    font-size: 11px;
+}
+
+.stats-card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+}
+
+.pagination .page-link {
+    border-color: #dee2e6;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #6366f1;
+    border-color: #6366f1;
+}
+
+.pagination .page-link:hover {
+    background-color: #f8f9fa;
+}
+
+.btn-group .btn.active {
+    background-color: #6366f1;
+    border-color: #6366f1;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .video-stats-horizontal {
+        margin-top: 0.5rem;
+    }
+    
+    .history-item .col-md-2:last-child {
+        margin-top: 0.5rem;
+    }
+    
+    .d-flex.justify-content-between {
+        flex-direction: column;
+    }
+    
+    .d-flex.justify-content-between > div:last-child {
+        margin-top: 0.5rem;
+        text-align: center;
+    }
+    
+    .btn-group {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 576px) {
+    .container-fluid {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    .row.mb-4 .col-md-3,
+    .row.mb-4 .col-md-6 {
+        margin-bottom: 0.5rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+}
+</style>
+
+<script>
+/**
+ * TikTok Downloader Pro - Download History Page
+ * CSP Compliant - No inline event handlers
+ */
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize history manager
+    window.historyManager = new DownloadHistoryManager();
+    window.historyManager.init();
+});
+
+class DownloadHistoryManager {
+    constructor() {
+        this.currentPage = 1;
+        this.itemsPerPage = 12;
+        this.currentView = 'list'; // 'list' or 'grid'
+        this.filters = {
+            search: '',
+            type: '',
+            sort: 'downloaded_at_desc'
+        };
+        this.debounceTimer = null;
+    }
+
+    init() {
+        this.initializeEventListeners();
+        this.loadHistory();
+        this.loadStats();
+    }
+
+    initializeEventListeners() {
+        // Search input
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(this.debounceTimer);
+                this.debounceTimer = setTimeout(() => {
+                    this.filters.search = e.target.value;
+                    this.currentPage = 1;
+                    this.loadHistory();
+                }, 500);
+            });
+        }
+
+        // Filter type
+        const filterType = document.getElementById('filterType');
+        if (filterType) {
+            filterType.addEventListener('change', (e) => {
+                this.filters.type = e.target.value;
+                this.currentPage = 1;
+                this.loadHistory();
+            });
+        }
+
+        // Sort by
+        const sortBy = document.getElementById('sortBy');
+        if (sortBy) {
+            sortBy.addEventListener('change', (e) => {
+                this.filters.sort = e.target.value;
+                this.currentPage = 1;
+                this.loadHistory();
+            });
+        }
+
+        // Refresh button
+        const refreshBtn = document.getElementById('refreshHistoryBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                this.loadHistory();
+                this.loadStats();
+                Utils.showToast('History refreshed', 'success');
+            });
+        }
+
+        // View toggle buttons
+        const gridViewBtn = document.getElementById('gridViewBtn');
+        const listViewBtn = document.getElementById('listViewBtn');
+        
+        if (gridViewBtn) {
+            gridViewBtn.addEventListener('click', () => {
+                this.switchView('grid');
+            });
+        }
+        
+        if (listViewBtn) {
+            listViewBtn.addEventListener('click', () => {
+                this.switchView('list');
+            });
+        }
+
+        // Global event delegation for dynamic content
+        document.addEventListener('click', this.handleGlobalClick.bind(this));
+    }
+
+    // Handle all clicks with event delegation (CSP compliant)
+    handleGlobalClick(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const videoId = target.dataset.videoId;
+        const quality = target.dataset.quality;
+        const page = target.dataset.page;
+
+        e.preventDefault();
+
+        switch (action) {
+            case 'show-video-details':
+                this.showVideoDetails(videoId);
+                break;
+            case 'download-video':
+                e.stopPropagation();
+                this.downloadVideo(videoId, quality);
+                break;
+            case 'goto-page':
+                this.goToPage(parseInt(page));
+                break;
+            case 'clear-filters':
+                this.clearFilters();
+                break;
+            case 'play-video-preview':
+                this.playVideoPreview(target.dataset.videoUrl);
+                break;
+            case 'copy-video-url':
+                this.copyVideoUrl(target.dataset.videoUrl);
+                break;
+            case 'retry-video-details':
+                this.showVideoDetails(videoId);
+                break;
+        }
+    }
+
+    switchView(viewType) {
+        this.currentView = viewType;
+        
+        // Update button states
+        const gridBtn = document.getElementById('gridViewBtn');
+        const listBtn = document.getElementById('listViewBtn');
+        
+        if (viewType === 'grid') {
+            gridBtn.classList.add('active');
+            listBtn.classList.remove('active');
+        } else {
+            listBtn.classList.add('active');
+            gridBtn.classList.remove('active');
+        }
+        
+        // Reload history with new view
+        this.loadHistory();
+    }
+
+    async loadStats() {
+        try {
+            const response = await HttpClient.get('/api/stats');
+            
+            if (response.success) {
+                const stats = response.data;
+                
+                // Update stats cards with animation
+                this.animateStatsUpdate('totalDownloads', stats.total_downloads || 0);
+                this.animateStatsUpdate('singleDownloads', stats.single_downloads || 0);
+                this.animateStatsUpdate('bulkDownloads', stats.bulk_downloads || 0);
+                this.animateStatsUpdate('recentDownloads', stats.recent_downloads || 0);
+                
+                // Update modal stats
+                document.getElementById('modalTotalDownloads').textContent = stats.total_downloads || 0;
+                document.getElementById('modalSuccessfulDownloads').textContent = stats.successful_downloads || 0;
+                document.getElementById('modalFailedDownloads').textContent = stats.failed_downloads || 0;
+                document.getElementById('modalSuccessRate').textContent = (stats.success_rate || 0) + '%';
+                document.getElementById('modalSingleDownloads').textContent = stats.single_downloads || 0;
+                document.getElementById('modalBulkDownloads').textContent = stats.bulk_downloads || 0;
+                document.getElementById('modalRecentDownloads').textContent = stats.recent_downloads || 0;
+            }
+        } catch (error) {
+            console.error('Failed to load stats:', error);
+        }
+    }
+
+    animateStatsUpdate(elementId, targetValue) {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+        
+        const currentValue = parseInt(element.textContent) || 0;
+        const increment = Math.ceil((targetValue - currentValue) / 20);
+        
+        if (increment === 0) {
+            element.textContent = targetValue;
+            return;
+        }
+        
+        const timer = setInterval(() => {
+            const current = parseInt(element.textContent) || 0;
+            if ((increment > 0 && current >= targetValue) || (increment < 0 && current <= targetValue)) {
+                element.textContent = targetValue;
+                clearInterval(timer);
+            } else {
+                element.textContent = current + increment;
+            }
+        }, 50);
+    }
+
+    async loadHistory() {
+        const container = document.getElementById('historyContent');
+        const resultCount = document.getElementById('resultCount');
+        
+        try {
+            // Show loading state
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Loading download history...</p>
+                </div>
+            `;
+
+            // Build query parameters
+            const params = new URLSearchParams({
+                page: this.currentPage,
+                limit: this.itemsPerPage
+            });
+
+            // Add filters if they exist
+            if (this.filters.search) params.append('search', this.filters.search);
+            if (this.filters.type) params.append('type', this.filters.type);
+            if (this.filters.sort) params.append('sort', this.filters.sort);
+
+            const response = await HttpClient.get(`/api/download/history?${params}`);
+            
+            if (response.success) {
+                const { history, pagination } = response.data;
+                
+                // Update result count
+                resultCount.textContent = `Showing ${history.length} of ${pagination.total} results`;
+                
+                if (history.length > 0) {
+                    if (this.currentView === 'grid') {
+                        container.innerHTML = this.renderGridView(history);
+                    } else {
+                        container.innerHTML = this.renderListView(history);
+                    }
+                    
+                    // Render pagination
+                    this.renderPagination(pagination);
+                } else {
+                    container.innerHTML = this.renderEmptyState();
+                    document.getElementById('paginationContainer').innerHTML = '';
+                }
+            } else {
+                throw new Error(response.message);
+            }
+            
+        } catch (error) {
+            console.error('Failed to load history:', error);
+            container.innerHTML = this.renderErrorState(error.message);
+            resultCount.textContent = 'Error loading results';
+        }
+    }
+
+    renderGridView(history) {
+        const historyHtml = history.map(item => `
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 history-card shadow-hover" data-action="show-video-details" data-video-id="${item.video.id}">
+                    <div class="position-relative">
+                        <img src="${item.video.thumbnail}" class="card-img-top video-thumbnail" alt="Video thumbnail" style="height: 200px; object-fit: cover;">
+                        <div class="video-duration">${item.video.duration}</div>
+                        <div class="video-overlay">
+                            <button class="btn btn-primary btn-sm">
+                                <i class="fas fa-play"></i>
+                            </button>
+                        </div>
+                        <div class="position-absolute top-0 end-0 p-2">
+                            <span class="badge bg-${item.downloadType === 'bulk' ? 'info' : 'primary'}">${item.downloadType}</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="card-title text-truncate" title="${this.escapeHtml(item.video.title)}">
+                            ${this.truncateText(item.video.title, 50)}
+                        </h6>
+                        <div class="d-flex align-items-center mb-2">
+                            <small class="text-muted">
+                                <i class="fas fa-user me-1"></i>${this.escapeHtml(item.video.author)}
+                            </small>
+                        </div>
+                        <div class="video-stats mb-3">
+                            <span class="badge bg-light text-dark me-1">
+                                <i class="fas fa-play"></i> ${item.video.stats.play_count}
+                            </span>
+                            <span class="badge bg-light text-dark me-1">
+                                <i class="fas fa-heart"></i> ${item.video.stats.digg_count}
+                            </span>
+                            <span class="badge bg-light text-dark">
+                                <i class="fas fa-comment"></i> ${item.video.stats.comment_count}
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>
+                                ${this.formatDate(item.downloadedAt)}
+                            </small>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" data-action="download-video" data-video-id="${item.video.id}" data-quality="hd" title="Download HD">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        return `<div class="row">${historyHtml}</div>`;
+    }
+
+    renderListView(history) {
+        const historyHtml = history.map(item => `
+            <div class="border-bottom py-3 history-item" data-action="show-video-details" data-video-id="${item.video.id}">
+                <div class="row align-items-center">
+                    <div class="col-md-2">
+                        <div class="position-relative">
+                            <img src="${item.video.thumbnail}" class="img-fluid rounded" alt="Thumbnail" style="width: 100px; height: 70px; object-fit: cover;">
+                            <div class="video-duration-small">${item.video.duration}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <h6 class="mb-1 text-truncate" title="${this.escapeHtml(item.video.title)}">
+                            ${this.truncateText(item.video.title, 60)}
+                        </h6>
+                        <small class="text-muted">
+                            <i class="fas fa-user me-1"></i>by ${this.escapeHtml(item.video.author)}
+                        </small>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="video-stats-horizontal">
+                            <span class="badge bg-light text-dark me-1">
+                                <i class="fas fa-play"></i> ${item.video.stats.play_count}
+                            </span>
+                            <span class="badge bg-light text-dark">
+                                <i class="fas fa-heart"></i> ${item.video.stats.digg_count}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <span class="badge bg-${item.downloadType === 'bulk' ? 'info' : 'primary'} me-2">${item.downloadType}</span>
+                        <small class="text-muted d-block">
+                            <i class="fas fa-clock me-1"></i>
+                            ${this.formatDate(item.downloadedAt)}
+                        </small>
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" data-action="download-video" data-video-id="${item.video.id}" data-quality="hd" title="Download HD">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" data-action="show-video-details" data-video-id="${item.video.id}" title="View Details">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        return historyHtml;
+    }
+
+    renderEmptyState() {
+        return `
+            <div class="text-center py-5">
+                <i class="fas fa-history fa-4x text-muted mb-4"></i>
+                <h5 class="text-muted mb-3">No Download History Found</h5>
+                <p class="text-muted mb-4">
+                    ${this.filters.search || this.filters.type ? 
+                        'No downloads match your current filters. Try adjusting your search criteria.' : 
+                        'You haven\'t downloaded any videos yet. Start downloading to see your history here.'}
+                </p>
+                ${this.filters.search || this.filters.type ? 
+                    '<button class="btn btn-outline-primary" data-action="clear-filters"><i class="fas fa-eraser me-1"></i>Clear Filters</button>' : 
+                    '<a href="/dashboard/download" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Start Downloading</a>'}
+            </div>
+        `;
+    }
+
+    renderErrorState(message) {
+        return `
+            <div class="text-center py-5">
+                <i class="fas fa-exclamation-triangle fa-4x text-warning mb-4"></i>
+                <h5 class="text-muted mb-3">Failed to Load History</h5>
+                <p class="text-muted mb-4">${this.escapeHtml(message || 'An error occurred while loading your download history.')}</p>
+                <button class="btn btn-outline-primary" data-action="refresh-history">
+                    <i class="fas fa-retry me-1"></i>Try Again
+                </button>
+            </div>
+        `;
+    }
+
+    renderPagination(pagination) {
+        const container = document.getElementById('paginationContainer');
+        
+        if (pagination.pages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        let paginationHtml = '';
+        
+        // Previous button
+        paginationHtml += `
+            <li class="page-item ${pagination.page <= 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-action="goto-page" data-page="${pagination.page - 1}" aria-label="Previous">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+        `;
+        
+        // Page numbers
+        const startPage = Math.max(1, pagination.page - 2);
+        const endPage = Math.min(pagination.pages, pagination.page + 2);
+        
+        if (startPage > 1) {
+            paginationHtml += `
+                <li class="page-item">
+                    <a class="page-link" href="#" data-action="goto-page" data-page="1">1</a>
+                </li>
+            `;
+            if (startPage > 2) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            paginationHtml += `
+                <li class="page-item ${i === pagination.page ? 'active' : ''}">
+                    <a class="page-link" href="#" data-action="goto-page" data-page="${i}">${i}</a>
+                </li>
+            `;
+        }
+        
+        if (endPage < pagination.pages) {
+            if (endPage < pagination.pages - 1) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+            paginationHtml += `
+                <li class="page-item">
+                    <a class="page-link" href="#" data-action="goto-page" data-page="${pagination.pages}">${pagination.pages}</a>
+                </li>
+            `;
+        }
+        
+        // Next button
+        paginationHtml += `
+            <li class="page-item ${pagination.page >= pagination.pages ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-action="goto-page" data-page="${pagination.page + 1}" aria-label="Next">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        `;
+        
+        container.innerHTML = paginationHtml;
+    }
+
+    goToPage(page) {
+        if (page < 1) return;
+        this.currentPage = page;
+        this.loadHistory();
+        
+        // Scroll to top of history content
+        document.getElementById('historyContent').scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+        });
+    }
+
+    clearFilters() {
+        this.filters = {
+            search: '',
+            type: '',
+            sort: 'downloaded_at_desc'
+        };
+        this.currentPage = 1;
+        
+        // Reset form inputs
+        document.getElementById('searchInput').value = '';
+        document.getElementById('filterType').value = '';
+        document.getElementById('sortBy').value = 'downloaded_at_desc';
+        
+        this.loadHistory();
+        Utils.showToast('Filters cleared', 'info');
+    }
+
+    // CSP compliant methods (no inline events)
+    async showVideoDetails(videoId) {
+        const modal = new bootstrap.Modal(document.getElementById('videoDetailsModal'));
+        const modalContent = document.getElementById('videoDetailsContent');
+        
+        // Show loading state
+        modalContent.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Loading video details...</p>
+            </div>
+        `;
+        
+        modal.show();
+        
+        try {
+            const response = await HttpClient.get(`/dashboard/api/video/${videoId}`);
+            
+            if (response.success) {
+                const video = response.data;
+                modalContent.innerHTML = this.createVideoDetailsHTML(video);
+            } else {
+                throw new Error(response.message);
+            }
+        } catch (error) {
+            console.error('Failed to load video details:', error);
+            modalContent.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h6>Failed to Load Details</h6>
+                    <p class="text-muted">${this.escapeHtml(error.message || 'Unable to load video details')}</p>
+                    <button class="btn btn-outline-secondary" data-action="retry-video-details" data-video-id="${videoId}">
+                        <i class="fas fa-retry me-1"></i>Try Again
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    createVideoDetailsHTML(video) {
+        return `
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="position-relative">
+                        <img src="${video.thumbnail}" class="img-fluid rounded" alt="Video thumbnail">
+                        <div class="video-duration-badge">${video.duration}</div>
+                        <button class="btn btn-primary btn-sm position-absolute top-50 start-50 translate-middle" 
+                                data-action="play-video-preview" data-video-url="${this.escapeHtml(video.downloadUrls.hd)}">
+                            <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <h6 class="fw-bold mb-3">${this.escapeHtml(video.title)}</h6>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <img src="${video.author.avatar || 'https://via.placeholder.com/32x32/6366f1/ffffff?text=A'}" 
+                                 class="rounded-circle me-2" 
+                                 width="32" 
+                                 height="32" 
+                                 alt="Author"
+                                 onerror="this.src='https://via.placeholder.com/32x32/6366f1/ffffff?text=A'">
+                            <div>
+                                <div class="fw-bold">${this.escapeHtml(video.author.name)}</div>
+                                <small class="text-muted">Author</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-3">
+                            <div class="text-center p-2 bg-light rounded">
+                                <div class="fw-bold">${video.stats.play_count}</div>
+                                <small class="text-muted">Views</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="text-center p-2 bg-light rounded">
+                                <div class="fw-bold">${video.stats.digg_count}</div>
+                                <small class="text-muted">Likes</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="text-center p-2 bg-light rounded">
+                                <div class="fw-bold">${video.stats.comment_count}</div>
+                                <small class="text-muted">Comments</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="text-center p-2 bg-light rounded">
+                                <div class="fw-bold">${video.stats.share_count}</div>
+                                <small class="text-muted">Shares</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${video.music && video.music.title ? `
+                    <div class="mb-3">
+                        <h6 class="fw-bold mb-2">
+                            <i class="fas fa-music me-1"></i>Background Music
+                        </h6>
+                        <div class="bg-light p-2 rounded">
+                            <div class="fw-bold">${this.escapeHtml(video.music.title)}</div>
+                            <small class="text-muted">by ${this.escapeHtml(video.music.author)}</small>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="mb-3">
+                        <h6 class="fw-bold mb-2">
+                            <i class="fas fa-info-circle me-1"></i>Download Info
+                        </h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">Type</small>
+                                <div class="fw-bold">
+                                    <span class="badge bg-${video.downloadInfo.type === 'bulk' ? 'info' : 'primary'}">
+                                        ${video.downloadInfo.type}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Downloaded</small>
+                                <div class="fw-bold small">${new Date(video.downloadInfo.downloadedAt).toLocaleString()}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="${this.escapeHtml(video.downloadUrls.hd)}" class="btn btn-primary" download>
+                            <i class="fas fa-download me-2"></i>Download HD Quality
+                        </a>
+                        <a href="${this.escapeHtml(video.downloadUrls.watermark)}" class="btn btn-outline-primary" download>
+                            <i class="fas fa-download me-2"></i>Download with Watermark
+                        </a>
+                        <button class="btn btn-outline-secondary" data-action="copy-video-url" data-video-url="${this.escapeHtml(video.downloadUrls.hd)}">
+                            <i class="fas fa-copy me-2"></i>Copy HD URL
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async downloadVideo(videoId, quality) {
+        try {
+            Utils.showToast(`Preparing ${quality.toUpperCase()} download...`, 'info');
+            
+            const response = await HttpClient.get(`/dashboard/api/video/${videoId}`);
+            if (response.success) {
+                const downloadUrl = quality === 'hd' ? response.data.downloadUrls.hd : response.data.downloadUrls.watermark;
+                
+                // Create temporary link and trigger download
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = `${response.data.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                Utils.showToast('Download started successfully!', 'success');
+            }
+        } catch (error) {
+            console.error('Download error:', error);
+            Utils.showToast('Download failed. Please try again.', 'error');
+        }
+    }
+
+    playVideoPreview(videoUrl) {
+        const videoModal = `
+            <div class="modal fade" id="videoPreviewModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="fas fa-play me-2"></i>Video Preview
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-0">
+                            <video controls class="w-100" autoplay controlsList="nodownload">
+                                <source src="${this.escapeHtml(videoUrl)}" type="video/mp4">
+                                <p class="p-3 text-center text-muted">
+                                    Your browser does not support the video tag.
+                                    <br>
+                                    <a href="${this.escapeHtml(videoUrl)}" target="_blank" class="btn btn-primary mt-2">
+                                        <i class="fas fa-external-link-alt me-1"></i>Open in New Tab
+                                    </a>
+                                </p>
+                            </video>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <a href="${this.escapeHtml(videoUrl)}" class="btn btn-primary" download>
+                                <i class="fas fa-download me-1"></i>Download Video
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal
+        const existingModal = document.getElementById('videoPreviewModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add new modal
+        document.body.insertAdjacentHTML('beforeend', videoModal);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('videoPreviewModal'));
+        modal.show();
+        
+        // Clean up when modal is hidden
+        document.getElementById('videoPreviewModal').addEventListener('hidden.bs.modal', function() {
+            // Pause video before removing
+            const video = this.querySelector('video');
+            if (video) {
+                video.pause();
+                video.currentTime = 0;
+            }
+            this.remove();
+        });
+    }
+
+    async copyVideoUrl(url) {
+        try {
+            await navigator.clipboard.writeText(url);
+            Utils.showToast('Video URL copied to clipboard!', 'success');
+        } catch (err) {
+            console.error('Failed to copy URL:', err);
+            
+            // Fallback for browsers that don't support clipboard API
+            const textArea = document.createElement('textarea');
+            textArea.value = url;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                Utils.showToast('Video URL copied to clipboard!', 'success');
+            } catch (err2) {
+                Utils.showToast('Failed to copy URL. Please copy manually.', 'error');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+    }
+
+    // Utility methods
+    truncateText(text, maxLength) {
+        if (!text) return '';
+        return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    }
+
+    formatDate(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = Math.abs(now - date);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 1) {
+            return 'Yesterday';
+        } else if (diffDays < 7) {
+            return `${diffDays} days ago`;
+        } else {
+            return date.toLocaleDateString();
+        }
+    }
+
+    escapeHtml(text) {
+        if (!text) return '';
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + F to focus search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.focus();
+            searchInput.select();
+        }
+    }
+    
+    // Escape to clear search
+    if (e.key === 'Escape') {
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput && searchInput === document.activeElement) {
+            searchInput.blur();
+        }
+    }
+    
+    // Arrow keys for pagination
+    if (window.historyManager) {
+        if (e.key === 'ArrowLeft' && e.altKey) {
+            e.preventDefault();
+            const prevPage = window.historyManager.currentPage - 1;
+            if (prevPage >= 1) {
+                window.historyManager.goToPage(prevPage);
+            }
+        }
+        
+        if (e.key === 'ArrowRight' && e.altKey) {
+            e.preventDefault();
+            const nextPage = window.historyManager.currentPage + 1;
+            window.historyManager.goToPage(nextPage);
+        }
+    }
+});
+
+// Auto-refresh every 5 minutes to keep data fresh
+setInterval(() => {
+    if (window.historyManager && document.visibilityState === 'visible') {
+        window.historyManager.loadStats();
+    }
+}, 5 * 60 * 1000);
+
+// Page visibility change handler
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible' && window.historyManager) {
+        // Refresh stats when user returns to page
+        window.historyManager.loadStats();
+    }
+});
+</script>
